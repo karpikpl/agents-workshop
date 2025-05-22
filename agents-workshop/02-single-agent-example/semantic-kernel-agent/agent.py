@@ -1,6 +1,6 @@
 """
 Agent implementation using Semantic Kernel with telemetry enabled.
-Application Insights connection string is required via environment variable: TELEMETRY_SAMPLE_CONNECTION_STRING
+Application Insights connection string can be added via environment variable: APPLICATIONINSIGHTS_CONNECTION_STRING
 """
 
 import asyncio
@@ -27,7 +27,6 @@ setup_otel()
 
 # Example: Initialize Semantic Kernel
 kernel = Kernel()
-
 
 def create_agent(agent_name: str, agent_instructions: str):
     """Create a Semantic Kernel agent."""
@@ -62,7 +61,6 @@ def create_agent(agent_name: str, agent_instructions: str):
     return agent
 
 
-# Example agent logic (replace with your own)
 def main():
     asyncio.run(main_async())
 
