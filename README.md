@@ -1,0 +1,25 @@
+# Workshop Agenda
+
+## Introduction to Agentic AI:
+
+- Overview of agentic AI and its applications.
+- High-level introduction to the Azure AI agent service.
+- Discuss the evolution from chatbots to agentic workflows. 
+
+## Single Agent Example:
+- Walkthrough of creating an agent using Python SDK.
+- Introduction to built-in tools and integrations (e.g., AI search, Bing grounding). 
+
+## Building Custom Tools:
+- Demonstrate building a custom tool for Stack Overflow or Azure DevOps.
+- Discuss the on-behalf-of (OBO) authentication workflow. 
+
+## Multi-Agent Workflows:
+- Introduction to semantic kernel and its applications.
+- Example of a router agent for question routing.
+- Discuss upcoming orchestration capabilities in Azure AI agent service. 
+
+## Wrap-Up and Next Steps:
+
+- Summarize key learnings and takeaways.
+- Discuss potential applications and future workshops. 
