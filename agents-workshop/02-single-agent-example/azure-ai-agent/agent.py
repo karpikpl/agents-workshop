@@ -1,6 +1,6 @@
 """
 Agent implementation using Semantic Kernel with telemetry enabled.
-Application Insights connection string is required via environment variable: APPLICATIONINSIGHTS_CONNECTION_STRING
+Application Insights connection string can be added via environment variable: APPLICATIONINSIGHTS_CONNECTION_STRING
 """
 
 import asyncio
