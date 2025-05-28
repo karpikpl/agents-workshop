@@ -14,6 +14,11 @@ from semantic_kernel.agents import (
     AzureAIAgentThread,
     AzureAIAgentSettings,
 )
+from semantic_kernel.connectors.ai.prompt_execution_settings import (
+    PromptExecutionSettings,
+)
+from semantic_kernel.connectors.ai import FunctionChoiceBehavior
+from semantic_kernel.functions import KernelArguments
 
 from otel_setup import setup_otel
 from dotenv import load_dotenv
@@ -37,16 +42,57 @@ app_logger.addHandler(console_handler)
 def create_project_client() -> tuple[AIProjectClient, DefaultAzureCredential]:
     """Create an AIProjectClient instance."""
 
-    # TODO: implement 
-    return client,creds
+    endpoint = os.environ.get("AZURE_AI_FOUNDRY_CONNECTION_STRING")
+    deployment_name = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
+    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", None)
+
+    ai_agent_settings = AzureAIAgentSettings(
+        endpoint=endpoint,
+        model_deployment_name=deployment_name,
+        api_version=api_version,
+    )
+
+    creds = DefaultAzureCredential()
+    client = AzureAIAgent.create_client(
+        credential=creds,
+        endpoint=ai_agent_settings.endpoint,
+        api_version=ai_agent_settings.api_version,
+    )
+    return client, creds
+
 
 async def create_agent(
     agent_name: str, agent_instructions: str, client: AIProjectClient
 ) -> AzureAIAgent:
-   
-    agent: AzureAIAgent = None
-    kernel = await KernelFactory.create_kernel(agent)
+    endpoint = os.environ.get("AZURE_AI_FOUNDRY_CONNECTION_STRING")
+    deployment_name = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
+    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", None)
 
+    ai_agent_settings = AzureAIAgentSettings(
+        endpoint=endpoint,
+        model_deployment_name=deployment_name,
+        api_version=api_version,
+    )
+
+    # Create an agent on the Azure AI agent service
+    agent_definition = await client.agents.create_agent(
+        model=ai_agent_settings.model_deployment_name,
+        name=agent_name,
+        instructions=agent_instructions,
+    )
+
+    kernel_settings = PromptExecutionSettings(
+        function_choice_behavior=FunctionChoiceBehavior.Auto()
+    )
+
+    kernel = await KernelFactory.create_kernel(agent_definition)
+
+    agent = AzureAIAgent(
+        arguments=KernelArguments(kernel_settings),
+        kernel=kernel,
+        client=client,
+        definition=agent_definition,
+    )
     return agent
 
 
@@ -74,8 +120,14 @@ async def main_async():
         )
         print("Welcome! (type 'exit' to exit.)")
         try:
-            pass
-
+            while user_input.lower() != "exit":
+                async for plan_response in agent.invoke(
+                    messages=user_input, thread=thread
+                ):
+                    print(f"Agent: {plan_response}")
+                user_input = input("You: ")
+                if not user_input.strip():
+                    continue
         except KeyboardInterrupt:
             print("\nExiting. Goodbye!")
     finally:
@@ -83,6 +135,7 @@ async def main_async():
         await client.agents.delete_agent(agent.id) if agent else None
         await client.close()
         await creds.close()
+
 
 if __name__ == "__main__":
     main()
