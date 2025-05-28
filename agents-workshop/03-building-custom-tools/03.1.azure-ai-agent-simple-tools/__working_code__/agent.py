@@ -124,10 +124,10 @@ async def main_async():
         print("Welcome! (type 'exit' to exit.)")
         try:
             while user_input.lower() != "exit":
-                async for plan_response in agent.invoke(
+                async for agent_response in agent.invoke(
                     messages=user_input, thread=thread
                 ):
-                    print(f"Agent: {plan_response}")
+                    print(f"Agent: {agent_response}")
                 user_input = input("You: ")
                 if not user_input.strip():
                     continue
