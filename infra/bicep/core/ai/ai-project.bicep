@@ -4,6 +4,7 @@ param location string
 param project_name string
 param description string  
 param display_name string
+param managedIdentityId string
 param tags object = {}
 
 #disable-next-line BCP081
@@ -19,7 +20,10 @@ resource account_name_project_name 'Microsoft.CognitiveServices/accounts/project
   tags: tags
   location: location
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
   }
   properties: {
     description: description
@@ -29,5 +33,5 @@ resource account_name_project_name 'Microsoft.CognitiveServices/accounts/project
 
 output project_name string = account_name_project_name.name
 output project_id string = account_name_project_name.id
-output projectPrincipalId string = account_name_project_name.identity.principalId
+output projectPrincipalId string = managedIdentityId
 output projectConnectionString string = 'https://${account_name}.services.ai.azure.com/api/projects/${project_name}'

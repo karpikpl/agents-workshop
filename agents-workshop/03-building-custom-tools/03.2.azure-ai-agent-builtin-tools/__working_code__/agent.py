@@ -75,8 +75,14 @@ async def create_update_agent_definition(
     code_interpreter = CodeInterpreterTool()
 
     if path_to_file:
-        # TODO: implement file upload logic
-        pass
+        csv_file_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), path_to_file
+        )
+        file = await client.agents.files.upload_and_poll(
+            file_path=csv_file_path,
+            purpose=FilePurpose.AGENTS,
+        )
+        code_interpreter.add_file(file.id)
 
     if not agent_id:
         endpoint = os.environ.get("AZURE_AI_FOUNDRY_CONNECTION_STRING")
@@ -94,7 +100,8 @@ async def create_update_agent_definition(
             model=ai_agent_settings.model_deployment_name,
             name=agent_name,
             instructions=agent_instructions,
-            # TODO : add tools and resources
+            tools=code_interpreter.definitions,
+            tool_resources=code_interpreter.resources,
         )
     else:
         # get the agent
@@ -106,7 +113,8 @@ async def create_update_agent_definition(
             model=agent_definition.model,
             name=agent_definition.name,
             instructions=agent_definition.instructions,
-            # TODO : add tools and resources
+            tools=code_interpreter.definitions,
+            tool_resources=code_interpreter.resources,
         )
 
     kernel_settings = PromptExecutionSettings(
@@ -156,11 +164,16 @@ async def main_async():
                     thread=thread,
                     tools=[code_interpreter],
                 ):
-                    # TODO: handle code responses differently?
                     print(f"Agent: {agent_response}")
                     for item in agent_response.items:
-                        # TODO: handle items returned by the agent - dowload files created by the code interpreter
-                        pass
+                        if isinstance(item, FileReferenceContent):
+                            await client.agents.files.save(
+                                file_id=item.file_id,
+                                file_name=f"downloaded__{item.file_id}.png",
+                            )
+                            print(
+                                f"Downloaded file: {item.file_id} saved as downloaded_file.png"
+                            )
                 user_input = input("You: ")
 
                 if user_input.lower() == "file":

@@ -399,7 +399,6 @@ FodyWeavers.xsd
 
 .env
 .venv
-.*venv
 
 # Ignore local dev settings
 appsettings.Development.json
@@ -413,5 +412,5 @@ infra/bicep/main-test.bicep
 # Ruff
 .ruff_cache
 
-# Streamlit
-secrets.toml
+Dockerfile
+.dockerignore

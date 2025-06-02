@@ -1,7 +1,7 @@
 // --------------------------------------------------------------------------------------------------------------
 // Parameter file with many existing resources specified
 // --------------------------------------------------------------------------------------------------------------
-using 'simple.bicep'
+using 'main.bicep'
 
 param publicAccessEnabled = true
 param searchServiceSkuName = 'basic'
@@ -24,7 +24,6 @@ param searchUseVectorQuery = true
 
 param searchServiceSemanticRankerLevel = 'free'
 
-
 param azdEnvName = readEnvironmentVariable('AZURE_ENV_NAME', '')
 
 param location = readEnvironmentVariable('AZURE_LOCATION', '')
@@ -40,3 +39,5 @@ param myIpAddress = readEnvironmentVariable('MY_IP', '')
 param addRoleAssignments = bool(readEnvironmentVariable('ADD_ROLE_ASSIGNMENTS', 'true'))
 
 param openAI_deploy_location = readEnvironmentVariable('AZURE_OPENAI_DEPLOY_LOCATION', '')
+
+param doAppRegistration = bool(readEnvironmentVariable('DO_APP_REGISTRATION', 'true'))

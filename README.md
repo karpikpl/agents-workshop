@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="Semantic Kernel Agentic Workshop" />
+</p>
+
 # Workshop Agenda
 
 ## 01 - Introduction to Agentic AI
@@ -37,3 +41,28 @@
 
 - Azure Subscription with **User Access Management** permission and **Contributor** permission
 - On-behalf-of requirement - permission to register applications in Entra Id.
+
+## Deployment
+
+Use Azure Developer Tools to deploy the "mini" landing zone with required resources.
+
+```bash
+azd up
+```
+
+Deployment creates:
+
+<TODO> Architecture Diagram goes here.
+
+It is possible to share resources as well, that requires assigning users `Azure AI User` role in order to use AI Foundry.
+
+## Working on workshop tasks
+
+Each workshop task uses `uv` for python version and packages management.
+
+1. Simply `cd` to the directory of the task, e.g. `cd 
+
+## Materials
+
+* [Hackathon from MS Learn](https://learn.microsoft.com/en-us/semantic-kernel/support/hackathon-materials)
+https://revodavid.github.io/build-your-first-agent-with-azure-ai-agent-service-workshop/lab-4-bing_search/

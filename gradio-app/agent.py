@@ -17,10 +17,14 @@ from semantic_kernel.agents import (
 from semantic_kernel.connectors.ai.prompt_execution_settings import (
     PromptExecutionSettings,
 )
-from azure.ai.agents.models import CodeInterpreterTool, FilePurpose
 from semantic_kernel.connectors.ai import FunctionChoiceBehavior
 from semantic_kernel.functions import KernelArguments
-from semantic_kernel.contents.file_reference_content import FileReferenceContent
+from azure.ai.agents.models import (
+    BingGroundingTool,
+    CodeInterpreterTool,
+    FileSearchTool,
+)
+
 from otel_setup import setup_otel
 from dotenv import load_dotenv
 from kernel_factory import KernelFactory
@@ -64,49 +68,67 @@ def create_project_client() -> tuple[AIProjectClient, DefaultAzureCredential]:
     return client, creds
 
 
-async def create_update_agent_definition(
-    agent_name: str,
-    agent_instructions: str,
-    client: AIProjectClient,
-    agent_id: str | None = None,
-    path_to_file: str | None = None,
-) -> tuple[AzureAIAgent, CodeInterpreterTool]:
+async def create_agent(
+    agent_name: str, agent_instructions: str, client: AIProjectClient
+) -> AzureAIAgent:
+    endpoint = os.environ.get("AZURE_AI_FOUNDRY_CONNECTION_STRING")
+    deployment_name = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
+    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", None)
 
+    ai_agent_settings = AzureAIAgentSettings(
+        endpoint=endpoint,
+        model_deployment_name=deployment_name,
+        api_version=api_version,
+    )
+
+    existing_agent = None
+
+    # Find agent by name
+    async for existing_agent in client.agents.list_agents():
+        if existing_agent.name == agent_name:
+            app_logger.info(f"Found existing agent: {existing_agent.name} - {existing_agent.id}")
+            break
+
+    bing_connection_id = None
+    # get all connections
+    async for connection in client.connections.list(
+        connection_type="GroundingWithBingSearch"
+    ):
+        app_logger.info(f"Connection: {connection.name} - {connection.id}")
+        bing_connection_id = connection.id
+
+    # async for connection in client.connections.list():
+    #     app_logger.info(f"Connection: {connection.name} - {connection.id}")
+
+
+    bing = BingGroundingTool(connection_id=bing_connection_id, market="en-US", count=10)
     code_interpreter = CodeInterpreterTool()
+    file_search = FileSearchTool()
 
-    if path_to_file:
-        # TODO: implement file upload logic
-        pass
+    tools = (
+        bing.definitions
+        if bing_connection_id
+        else [] + code_interpreter.definitions + file_search.definitions
+    )
 
-    if not agent_id:
-        endpoint = os.environ.get("AZURE_AI_FOUNDRY_CONNECTION_STRING")
-        deployment_name = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
-        api_version = os.environ.get("AZURE_OPENAI_API_VERSION", None)
-
-        ai_agent_settings = AzureAIAgentSettings(
-            endpoint=endpoint,
-            model_deployment_name=deployment_name,
-            api_version=api_version,
+    # Create an agent on the Azure AI agent service
+    if existing_agent:
+        app_logger.info(f"Using existing agent: {existing_agent.name} - {existing_agent.id}")
+        agent_definition = await client.agents.update_agent(
+            agent_id=existing_agent.id,
+            model=ai_agent_settings.model_deployment_name,
+            name=agent_name,
+            instructions=agent_instructions,
+            tools=tools,
         )
-
-        # Create an agent on the Azure AI agent service
+    else:
+        app_logger.info(f"Creating new agent: {agent_name}")
+        # Create a new agent if it does not exist
         agent_definition = await client.agents.create_agent(
             model=ai_agent_settings.model_deployment_name,
             name=agent_name,
             instructions=agent_instructions,
-            # TODO : add tools and resources
-        )
-    else:
-        # get the agent
-        agent_definition = await client.agents.get_agent(agent_id)
-
-        # update the agent definition with the new file
-        agent_definition = await client.agents.update_agent(
-            agent_id=agent_id,
-            model=agent_definition.model,
-            name=agent_definition.name,
-            instructions=agent_definition.instructions,
-            # TODO : add tools and resources
+            tools=tools,
         )
 
     kernel_settings = PromptExecutionSettings(
@@ -122,8 +144,7 @@ async def create_update_agent_definition(
         definition=agent_definition,
         plugins=[SimpleTool()],
     )
-
-    return agent, code_interpreter
+    return agent
 
 
 # Example agent logic (replace with your own)
@@ -141,38 +162,21 @@ async def main_async():
     )
 
     client, creds = create_project_client()
-    agent, code_interpreter = await create_update_agent_definition(
-        agent_name=agent_name, agent_instructions=agent_instructions, client=client
-    )
+    agent = await create_agent(agent_name, agent_instructions, client)
     thread = AzureAIAgentThread(client=client)
 
     try:
-        user_input = "Ask the user how they are doing today and offer to help with anything. Suggest working with a file (type 'file' to upload a file)."
-        print("Welcome! (type 'exit' to exit. type 'file' to upload a file.)")
+        user_input = (
+            "Ask the user how they are doing today and offer to help with anything."
+        )
+        print("Welcome! (type 'exit' to exit.)")
         try:
             while user_input.lower() != "exit":
                 async for agent_response in agent.invoke(
-                    messages=user_input,
-                    thread=thread,
-                    tools=[code_interpreter],
+                    messages=user_input, thread=thread
                 ):
-                    # TODO: handle code responses differently?
                     print(f"Agent: {agent_response}")
-                    for item in agent_response.items:
-                        # TODO: handle items returned by the agent - dowload files created by the code interpreter
-                        pass
                 user_input = input("You: ")
-
-                if user_input.lower() == "file":
-                    agent, code_interpreter = await create_update_agent_definition(
-                        agent_name,
-                        agent_instructions,
-                        client,
-                        agent.id,
-                        "resources/organizations-100000.csv",
-                    )
-                    user_input = "Analyze the uploaded file and provide insights."
-
                 if not user_input.strip():
                     continue
         except KeyboardInterrupt:

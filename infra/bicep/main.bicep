@@ -71,6 +71,8 @@ var researchAgentName = 'emissions-copilot-research'
 param publicAccessEnabled bool = true
 @description('Add Role Assignments for the user assigned identity?')
 param addRoleAssignments bool = true
+@description('Should an Entra App Registration be created?')
+param doAppRegistration bool = true
 
 // --------------------------------------------------------------------------------------------------------------
 // -- Variables -------------------------------------------------------------------------------------------------
@@ -89,6 +91,19 @@ module resourceNames 'resourcenames.bicep' = {
   params: {
     applicationName: 'ai-workshop'
     resourceToken: resourceToken
+  }
+}
+// --------------------------------------------------------------------------------------------------------------
+// -- Entra App Registraion ----------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------
+module appRegistration './entra/entra-resource-app.bicep' = if(doAppRegistration) {
+  name: 'entra-app'
+  params: {
+    entraAppUniqueName: 'workshop-agent-client'
+    entraAppDisplayName: 'Semantic Kernel Workshop Agent Client'
+    tenantId: subscription().tenantId
+    userAssignedIdentityPrincipleId: identity.outputs.managedIdentityPrincipalId
+    OauthCallback: 'http://localhost:8501/oauth2callback'
   }
 }
 
@@ -303,7 +318,6 @@ module openAI './core/ai/cognitive-services.bicep' = {
   ]
 }
 
-
 module aiProject 'core/ai/ai-project.bicep' = {
   name: 'aiProject'
   params: {
@@ -312,7 +326,16 @@ module aiProject 'core/ai/ai-project.bicep' = {
     project_name: resourceNames.outputs.aiHubProjectName
     display_name: aiProjectFriendlyName
     description: aiProjectDescription
+    managedIdentityId: identity.outputs.managedIdentityId
     location: location
+    tags: tags
+  }
+}
+
+module bing 'bing/connection-bing-grounding.bicep' = {
+  name: 'bing-grounding'
+  params: {
+    aiFoundryName: openAI.outputs.name
     tags: tags
   }
 }
@@ -427,6 +450,7 @@ output STORAGE_ACCOUNT_BATCH_IN_CONTAINER string = storage.outputs.containerName
 output STORAGE_ACCOUNT_BATCH_OUT_CONTAINER string = storage.outputs.containerNames[2].name
 output STORAGE_ACCOUNT_CONTAINER string = storage.outputs.containerNames[0].name
 output STORAGE_ACCOUNT_NAME string = storage.outputs.name
+output KEY_VAULT_NAME string = keyVault.outputs.name
 
 // new for indexing
 output AZURE_PATTERNS_SEARCH_INDEX string = greenSoftwareSearchIndexName
@@ -459,3 +483,9 @@ output AZURE_AI_PROJECT_RESEARCH_AGENT_NAME string = researchAgentName
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = logAnalytics.outputs.appInsightsConnectionString
 
 output AZURE_MAPS_CLIENT_ID string = maps.outputs.clientId
+
+// App registration outputs
+output ENTRA_APP_ID string = doAppRegistration ? appRegistration.outputs.entraAppId : ''
+
+output BING_CONNECTION_NAME string = bing.outputs.BING_CONNECTION_NAME
+output BING_CONNECTION_ID string = bing.outputs.BING_CONNECTION_ID

@@ -12,7 +12,7 @@ metadata:
 infra:
   provider: bicep
   path: infra/bicep
-  module: simple
+  module: main
   
 
 services:
