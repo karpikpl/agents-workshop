@@ -28,11 +28,22 @@ hooks:
   # This script gets my IP address
   preprovision:
     shell: pwsh
-    run: |
-      $myIP = $(Invoke-WebRequest -Uri "https://api.ipify.org").Content
-      azd env set MY_IP $myIP
     continueOnError: false
     interactive: false
+    windows:
+      shell: pwsh
+      run: |
+        $myIP = $(Invoke-WebRequest -Uri "https://api.ipify.org").Content
+        azd env set MY_IP $myIP
+      interactive: false
+      continueOnError: false
+    posix:
+      shell: sh
+      run: |
+        myIP=$(curl -s https://api.ipify.org)
+        azd env set MY_IP "$myIP"
+      interactive: false
+      continueOnError: false
   postprovision:
     shell: pwsh
     run: |
@@ -41,11 +52,11 @@ hooks:
     interactive: false
     windows:
       shell: pwsh
-      run: ./scripts/approve_pe.ps1; ./scripts/setup_intvect.ps1; ./scripts/setup_agents.ps1;
+      run: ./scripts/approve_pe.ps1; ./scripts/setup_intvect.ps1; ./scripts/setup_agents.ps1; add_app_reg_secret.ps1;
       interactive: false
       continueOnError: false
     posix:
       shell: sh
-      run: ./scripts/approve_pe.sh; ./scripts/setup_intvect.sh; ./scripts/setup_agents.sh;
+      run: ./scripts/approve_pe.sh; ./scripts/setup_intvect.sh; ./scripts/setup_agents.sh; add_app_reg_secret.sh;
       interactive: false
       continueOnError: false
