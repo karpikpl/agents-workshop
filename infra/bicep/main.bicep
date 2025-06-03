@@ -26,7 +26,6 @@ param myIpAddress string = ''
 @description('Id of the user executing the deployment')
 param principalId string = ''
 
-
 // --------------------------------------------------------------------------------------------------------------
 // AI Hub Parameters
 // --------------------------------------------------------------------------------------------------------------
@@ -62,7 +61,7 @@ param searchEmbeddingField string
 param searchUseVectorQuery bool
 
 // Agents
-var researchAgentName = 'emissions-copilot-research'
+var agentName = 'agent-for-workshop'
 
 // --------------------------------------------------------------------------------------------------------------
 // Other deployment switches
@@ -72,7 +71,7 @@ param publicAccessEnabled bool = true
 @description('Add Role Assignments for the user assigned identity?')
 param addRoleAssignments bool = true
 @description('Should an Entra App Registration be created?')
-param doAppRegistration bool = true
+param addAppRegistration bool = true
 
 // --------------------------------------------------------------------------------------------------------------
 // -- Variables -------------------------------------------------------------------------------------------------
@@ -96,7 +95,7 @@ module resourceNames 'resourcenames.bicep' = {
 // --------------------------------------------------------------------------------------------------------------
 // -- Entra App Registraion ----------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------
-module appRegistration './entra/entra-resource-app.bicep' = if(doAppRegistration) {
+module appRegistration './entra/entra-resource-app.bicep' = if (addAppRegistration) {
   name: 'entra-app'
   params: {
     entraAppUniqueName: 'workshop-agent-client'
@@ -135,7 +134,6 @@ module logAnalytics './core/monitor/loganalytics.bicep' = {
   }
 }
 
-
 // --------------------------------------------------------------------------------------------------------------
 // -- Storage Resources ---------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------
@@ -149,15 +147,15 @@ module storage './core/storage/storage-account.bicep' = {
     myIpAddress: myIpAddress
     containers: ['data', 'batch-input', 'batch-output', 'patterns-index-data', 'compute-index-data']
     resourcesWithAccess: [
-        {
-          resourceId: searchService.outputs.id
-          tenantId: subscription().tenantId
-        }
-        {
-          resourceId: openAI.outputs.id
-          tenantId: subscription().tenantId
-        }
-      ]
+      {
+        resourceId: searchService.outputs.id
+        tenantId: subscription().tenantId
+      }
+      {
+        resourceId: openAI.outputs.id
+        tenantId: subscription().tenantId
+      }
+    ]
   }
 }
 
@@ -263,9 +261,10 @@ module openAI './core/ai/cognitive-services.bicep' = {
   params: {
     managedIdentityId: identity.outputs.managedIdentityId
     name: resourceNames.outputs.cogServiceName
-    location: !empty(openAI_deploy_location) ? openAI_deploy_location:  location // this may be different than the other resources
+    location: !empty(openAI_deploy_location) ? openAI_deploy_location : location // this may be different than the other resources
     kind: 'AIServices'
     tags: tags
+    appInsightsName: logAnalytics.outputs.applicationInsightsName
     textEmbeddings: [
       {
         name: 'text-embedding'
@@ -298,7 +297,7 @@ module openAI './core/ai/cognitive-services.bicep' = {
       ModelVersion: openAI_agents_model_version
       sku: {
         name: 'GlobalStandard'
-        capacity: 400
+        capacity: 320
       }
     }
     chatGpt_Premium: {
@@ -307,7 +306,7 @@ module openAI './core/ai/cognitive-services.bicep' = {
       ModelVersion: openAI_model_version
       sku: {
         name: 'GlobalStandard'
-        capacity: 200
+        capacity: 100
       }
     }
     publicNetworkAccess: publicAccessEnabled ? 'Enabled' : 'Disabled'
@@ -350,17 +349,19 @@ module maps 'maps/maps.bicep' = {
     name: resourceNames.outputs.maps
     tags: tags
     storageAccountName: storage.outputs.name
-    roleAssignments: [
-      {
-        principalId: identity.outputs.managedIdentityPrincipalId
-        roleDefinitionId: roleDefinitions.maps.AzureMapsDataReader
-      }
-      {
-        principalId: principalId
-        roleDefinitionId: roleDefinitions.maps.AzureMapsDataReader
-        principalType: 'User'
-      }
-    ]
+    roleAssignments: addRoleAssignments
+      ? [
+          {
+            principalId: identity.outputs.managedIdentityPrincipalId
+            roleDefinitionId: roleDefinitions.maps.AzureMapsDataReader
+          }
+          {
+            principalId: principalId
+            roleDefinitionId: roleDefinitions.maps.AzureMapsDataReader
+            principalType: 'User'
+          }
+        ]
+      : []
   }
 }
 
@@ -406,10 +407,9 @@ module simple_chat './core/host/container-app-upsert.bicep' = {
         name: 'AZURE_AI_FOUNDRY_CONNECTION_STRING'
         value: empty(aiProject) ? '' : aiProject.outputs.projectConnectionString
       }
-      { name: 'AZURE_AI_PROJECT_RESEARCH_AGENT_NAME', value: researchAgentName }
+      { name: 'AZURE_AI_PROJECT_RESEARCH_AGENT_NAME', value: agentName }
       { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: logAnalytics.outputs.appInsightsConnectionString }
       { name: 'AZURE_CLIENT_ID', value: identity.outputs.managedIdentityClientId }
-      { name: 'API_KEY', secretRef: 'apikey' }
       { name: 'AZURE_SDK_TRACING_IMPLEMENTATION', value: 'opentelemetry' }
       { name: 'AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED', value: 'true' }
       { name: 'SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS', value: 'true' }
@@ -418,9 +418,7 @@ module simple_chat './core/host/container-app-upsert.bicep' = {
       { name: 'APPLICATIONINSIGHTS_METRIC_NAMESPACE_OPT_IN', value: 'false' }
       { name: 'AZURE_MAPS_CLIENT_ID', value: maps.outputs.clientId }
     ]
-    secrets: {
-      apikey: 'https://${keyVault.outputs.name}${environment().suffixes.keyvaultDns}/secrets/api-key'
-    }
+    secrets: {}
   }
 }
 
@@ -478,14 +476,14 @@ output AZURE_STORAGE_ID string = storage.outputs.id
 
 output AZURE_AI_FOUNDRY_CONNECTION_STRING string = empty(aiProject) ? '' : aiProject.outputs.projectConnectionString
 
-output AZURE_AI_PROJECT_RESEARCH_AGENT_NAME string = researchAgentName
+output AZURE_AI_PROJECT_RESEARCH_AGENT_NAME string = agentName
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = logAnalytics.outputs.appInsightsConnectionString
 
 output AZURE_MAPS_CLIENT_ID string = maps.outputs.clientId
 
 // App registration outputs
-output ENTRA_APP_ID string = doAppRegistration ? appRegistration.outputs.entraAppId : ''
+output ENTRA_APP_ID string = addAppRegistration ? appRegistration.outputs.entraAppId : ''
 
 output BING_CONNECTION_NAME string = bing.outputs.BING_CONNECTION_NAME
 output BING_CONNECTION_ID string = bing.outputs.BING_CONNECTION_ID

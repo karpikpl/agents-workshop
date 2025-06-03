@@ -6,11 +6,12 @@ from agent_chat import create_enterprise_chat
 enterprise_chat = None
 
 
-async def get_enterprise_chat():
+async def get_enterprise_chat() -> None:
     global enterprise_chat
     if enterprise_chat is None:
         enterprise_chat = await create_enterprise_chat(
-            "Bob", """
+            "Bob",
+            """
             You are a helpful assistant for enterprise queries. Use bing search and file search tools to answer questions.
             
             ## Tool usage
@@ -18,9 +19,16 @@ async def get_enterprise_chat():
             ### Bing Search Tool
             Use the Bing Search tool to find information on the web. You can search for company policies, weather forecasts, stock prices, and more.
             Example: prompt:"Who won champions league" should produce a Bing search query 'https://api.bing.microsoft.com/v7.0/search?q=champions league 2025 winner'
+
+            ### WeatherAPI
+            Use the WeatherAPI tool to get real-time weather forecasts. You can ask about the weather in specific locations.
+            Do not make up alternative sources or suggest alternative data sources.
+            When making tool/function calls, ensure you understand the description of the arguments/properties. 
+            They may give useful information as to why types of values are allowed or required. 
+            For example, the \'query\' argument takes a latitude, longitude value, so you must convert a string location to this type.
             """,
         )
-    return enterprise_chat
+        return None
 
 
 # Example: custom theme for a more modern look
@@ -70,8 +78,7 @@ async def chat_with_agent(user_message: dict, history: List[dict]):
 
     yield history, gr.MultimodalTextbox(interactive=False, value=None)
 
-    agent = await get_enterprise_chat()
-    async for new_history in agent.azure_enterprise_chat(user_message, history):
+    async for new_history in enterprise_chat.azure_enterprise_chat(user_message, history):
         # print('\nupdating history')
         yield new_history, gr.MultimodalTextbox(interactive=False, value=None)
 
@@ -103,6 +110,8 @@ with gr.Blocks(
         show_label=False,
         sources=["upload"],
     )
+
+    chat_input.attach_load_event(get_enterprise_chat, every=None)
 
     # On submit: call azure_enterprise_chat, then clear the textbox
     (

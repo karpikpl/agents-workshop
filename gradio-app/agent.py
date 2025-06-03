@@ -5,10 +5,12 @@ Application Insights connection string can be added via environment variable: AP
 
 import asyncio
 from datetime import date
+import json
 import logging
 import os
 from azure.identity.aio import DefaultAzureCredential
 from azure.ai.projects.aio import AIProjectClient
+import requests
 from semantic_kernel.agents import (
     AzureAIAgent,
     AzureAIAgentThread,
@@ -23,15 +25,21 @@ from azure.ai.agents.models import (
     BingGroundingTool,
     CodeInterpreterTool,
     FileSearchTool,
+    OpenApiTool,
+    OpenApiConnectionAuthDetails,
+    OpenApiConnectionSecurityScheme,
+    OpenApiManagedAuthDetails,
+    OpenApiManagedSecurityScheme
 )
 
-from otel_setup import setup_otel
 from dotenv import load_dotenv
+
+from otel_setup import setup_otel
 from kernel_factory import KernelFactory
 
 from simple_tool import SimpleTool
 
-# Load environment variables from the .env file
+# Load environment variables from .env file at the start of your script
 load_dotenv()
 
 # Set up OpenTelemetry (logging, tracing, metrics)
@@ -86,7 +94,9 @@ async def create_agent(
     # Find agent by name
     async for existing_agent in client.agents.list_agents():
         if existing_agent.name == agent_name:
-            app_logger.info(f"Found existing agent: {existing_agent.name} - {existing_agent.id}")
+            app_logger.info(
+                f"Found existing agent: {existing_agent.name} - {existing_agent.id}"
+            )
             break
 
     bing_connection_id = None
@@ -100,20 +110,44 @@ async def create_agent(
     # async for connection in client.connections.list():
     #     app_logger.info(f"Connection: {connection.name} - {connection.id}")
 
-
     bing = BingGroundingTool(connection_id=bing_connection_id, market="en-US", count=10)
     code_interpreter = CodeInterpreterTool()
     file_search = FileSearchTool()
 
+    # download spec from Azure Maps Weather Service
+    # "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/maps/data-plane/Microsoft.Maps/Weather/preview/1.0/weather.json"
+    
+    weather_spec_file = "weather_spec.json"
+    with open(weather_spec_file, "r", encoding="utf-8") as f:
+         file_content = f.read()
+    
+    azure_maps_client_id = os.environ.get("AZURE_MAPS_CLIENT_ID", "<your-azure-maps-client-id>")
+    file_content = file_content.replace("AZURE_MAPS_CLIENT_ID", azure_maps_client_id)
+    weather_spec_dict = json.loads(file_content)
+    
+    openapi_weather = OpenApiTool(
+        name="WeatherAPI",
+        description='Azure Maps Weather Service provides real-time weather data for a given location.',
+        spec=weather_spec_dict,
+        auth=OpenApiManagedAuthDetails(security_scheme=OpenApiManagedSecurityScheme(audience="https://atlas.microsoft.com/")),
+        # default_parameters= [
+        #     'unit=imperial',
+        #     'x-ms-client-id='+ os.environ.get("AZURE_MAPS_CLIENT_ID", "<your-azure-maps-client-id>"),
+        # ]
+    )
+
     tools = (
-        bing.definitions
-        if bing_connection_id
-        else [] + code_interpreter.definitions + file_search.definitions
+        (bing.definitions if bing_connection_id else [])
+        + code_interpreter.definitions
+        + file_search.definitions
+        + openapi_weather.definitions
     )
 
     # Create an agent on the Azure AI agent service
     if existing_agent:
-        app_logger.info(f"Using existing agent: {existing_agent.name} - {existing_agent.id}")
+        app_logger.info(
+            f"Using existing agent: {existing_agent.name} - {existing_agent.id}"
+        )
         agent_definition = await client.agents.update_agent(
             agent_id=existing_agent.id,
             model=ai_agent_settings.model_deployment_name,

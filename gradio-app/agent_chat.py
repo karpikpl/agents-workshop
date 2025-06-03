@@ -1,10 +1,13 @@
 import json
-import re
+import logging
 from typing import Dict, List
 import uuid
 from gradio import ChatMessage
 import gradio as gr
 from urllib.parse import urlparse, parse_qs, unquote_plus
+import io
+from PIL import Image
+import numpy as np
 
 from semantic_kernel.agents import (
     AzureAIAgent,
@@ -24,6 +27,8 @@ from semantic_kernel.contents import (
     TextContent,
     ImageContent,
 )
+
+app_logger = logging.getLogger("workshop.agent")
 
 
 class EnterpriseChat:
@@ -246,14 +251,17 @@ class EnterpriseChat:
                     # Handle streaming annotations
                     if conversation and conversation[-1].role == "assistant":
                         last_msg = conversation[-1]
-                    
+
                     if not last_msg:
                         break
 
-                    if last_msg.content.endswith('】'):
-                        start_index = last_msg.content.rfind('【')
+                    if last_msg.content.endswith("】"):
+                        start_index = last_msg.content.rfind("【")
                         # replace with markdown link
-                        last_msg.content = last_msg.content[:start_index] + f"【[{item.title}]({item.url})】"
+                        last_msg.content = (
+                            last_msg.content[:start_index]
+                            + f"【[{item.title}]({item.url})】"
+                        )
 
                 elif isinstance(item, StreamingChatMessageContent):
                     # This is never returned
@@ -265,11 +273,26 @@ class EnterpriseChat:
                                 print(f"Unknown item in chat message: {msg_item}")
                 elif isinstance(item, StreamingFileReferenceContent):
                     # This is never returned
-                    # Handle file references
-                    if item.file_reference:
-                        print(f"File Reference:> {item.file_reference}")
-                    else:
-                        print("Streaming file reference with no content")
+                    # Download the file reference
+                    file_info = await self.client.agents.files.get(file_id=item.file_id)
+                    app_logger.info(
+                        f"Downloading file: {file_info.name} ({file_info.size} bytes)"
+                    )
+                    file_bytes = bytearray()
+                    data = await self.client.agents.files.get_content(
+                        file_id=item.file_id
+                    )
+                    async for byte in data:
+                        file_bytes.extend(byte)
+
+                    # Append the file reference to the conversation
+                    # Convert bytes to numpy array for gr.Image
+                    image = Image.open(io.BytesIO(file_bytes))
+                    image_np = np.array(image)
+                    conversation.append(
+                        ChatMessage(role="assistant", content=gr.Image(image_np))
+                    )
+
                 elif isinstance(item, StreamingTextContent):
                     # Handle streaming text content
                     agent_msg = item.text or ""
@@ -288,7 +311,7 @@ class EnterpriseChat:
 
                     if matching_msg:
                         # Append newly streamed text
-                            matching_msg.content += agent_msg
+                        matching_msg.content += agent_msg
                     else:
                         # Append to last assistant or create new
                         if (
@@ -300,6 +323,7 @@ class EnterpriseChat:
                                     conversation[-1].metadata.get("id", "")
                                 ).startswith("tool-")
                             )
+                            or not isinstance(conversation[-1].content, str)
                         ):
                             conversation.append(
                                 ChatMessage(role="assistant", content=agent_msg)

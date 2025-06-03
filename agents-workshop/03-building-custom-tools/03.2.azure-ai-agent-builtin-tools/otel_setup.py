@@ -39,9 +39,6 @@ class TelemetrySampleSettings:
             "APPLICATIONINSIGHTS_CONNECTION_STRING", None
         )
 
-
-settings = TelemetrySampleSettings()
-
 # Create a resource to represent the service/sample
 resource = Resource.create({ResourceAttributes.SERVICE_NAME: "TelemetryExample"})
 
@@ -64,6 +61,7 @@ def set_up_logging():
                 ]
             )
 
+    settings = TelemetrySampleSettings()
     exporters = []
     if settings.connection_string:
         exporters.append(
@@ -96,6 +94,7 @@ def set_up_logging():
 
 def set_up_tracing():
     exporters = []
+    settings = TelemetrySampleSettings()
     if settings.connection_string:
         exporters.append(
             AzureMonitorTraceExporter(connection_string=settings.connection_string)
@@ -115,6 +114,7 @@ def set_up_tracing():
 
 def set_up_metrics():
     exporters = []
+    settings = TelemetrySampleSettings()
     if settings.connection_string:
         exporters.append(
             AzureMonitorMetricExporter(connection_string=settings.connection_string)

@@ -28,7 +28,6 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from opentelemetry.semconv.resource import ResourceAttributes
 from opentelemetry.trace import set_tracer_provider
-from opentelemetry.trace.span import format_trace_id
 
 
 # Load settings
@@ -40,14 +39,8 @@ class TelemetrySampleSettings:
             "APPLICATIONINSIGHTS_CONNECTION_STRING", None
         )
 
-
-settings = TelemetrySampleSettings()
-
 # Create a resource to represent the service/sample
 resource = Resource.create({ResourceAttributes.SERVICE_NAME: "TelemetryExample"})
-
-# Define the scenarios that can be run
-SCENARIOS = ["ai_service", "kernel_function", "auto_function_invocation", "all"]
 
 
 def set_up_logging():
@@ -68,6 +61,7 @@ def set_up_logging():
                 ]
             )
 
+    settings = TelemetrySampleSettings()
     exporters = []
     if settings.connection_string:
         exporters.append(
@@ -100,6 +94,7 @@ def set_up_logging():
 
 def set_up_tracing():
     exporters = []
+    settings = TelemetrySampleSettings()
     if settings.connection_string:
         exporters.append(
             AzureMonitorTraceExporter(connection_string=settings.connection_string)
@@ -119,6 +114,7 @@ def set_up_tracing():
 
 def set_up_metrics():
     exporters = []
+    settings = TelemetrySampleSettings()
     if settings.connection_string:
         exporters.append(
             AzureMonitorMetricExporter(connection_string=settings.connection_string)
@@ -154,6 +150,6 @@ def setup_otel():
 def get_span(name: str):
     """Get a span with the given name."""
     tracer = trace.get_tracer(__name__)
-    with tracer.start_as_current_span(name) as current_span:
-        print(f"Trace ID: {format_trace_id(current_span.get_span_context().trace_id)}")
-        return current_span
+    current_span = tracer.start_as_current_span(name)
+    # print(f"Trace ID: {format_trace_id(current_span.get_span_context().trace_id)}")
+    return current_span

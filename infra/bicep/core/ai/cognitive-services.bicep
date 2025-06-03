@@ -4,6 +4,8 @@ param name string = ''
 param location string = resourceGroup().location
 param pe_location string = location
 param tags object = {}
+param appInsightsName string
+
 //param deployments array = []
 @description('The Kind of AI Service, can be "OpenAI" or "AIServices"')
 @allowed([
@@ -137,6 +139,32 @@ module privateEndpoint2 '../networking/private-endpoint.bicep' = if (empty(exist
     groupIds: ['account']
     targetResourceId: account.id
     subnetId: privateEndpointSubnetId
+  }
+}
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: appInsightsName
+  scope: resourceGroup()
+}
+
+// Creates the Azure Foundry connection Application Insights
+resource connection 'Microsoft.CognitiveServices/accounts/connections@2025-04-01-preview' = {
+  name: 'applicationInsights'
+  parent: account
+  properties: {
+    category: 'AppInsights'
+    group: 'ServicesAndApps'
+    target: appInsights.id
+    authType: 'ApiKey'
+    isSharedToAll: true
+    isDefault: true
+    credentials: {
+      key: appInsights.properties.InstrumentationKey
+    }
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: appInsights.id
+    }
   }
 }
 

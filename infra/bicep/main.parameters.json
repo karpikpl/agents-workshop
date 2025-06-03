@@ -62,8 +62,8 @@
       "openAI_deploy_location": {
         "value": "${AZURE_OPENAI_DEPLOY_LOCATION}"
       },
-      "doAppRegistration": {
-        "value": "${DO_APP_REGISTRATION=true}"
+      "addAppRegistration": {
+        "value": "${ADD_APP_REGISTRATION=true}"
       }
     }
   }

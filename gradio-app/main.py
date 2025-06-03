@@ -9,6 +9,11 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 from starlette.config import Config
 import os
 
+from dotenv import load_dotenv
+
+# Load environment variables from .env file at the start of your script
+load_dotenv()
+
 app = FastAPI()
 
 app.add_middleware(
@@ -89,8 +94,10 @@ app = gr.mount_gradio_app(app, demo, path="/")
 # If running with uvicorn:
 # uvicorn main:app --host 0.0.0.0 --port 8000
 
+
 def signal_handler(sig, frame):
     print("Shutting down gracefully...")
     raise SystemExit(0)
+
 
 signal.signal(signal.SIGINT, signal_handler)

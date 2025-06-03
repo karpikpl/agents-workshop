@@ -39,7 +39,7 @@ resource newContainerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01
     name: acrSku
   }
   properties: {
-    adminUserEnabled: true // when this is set to false, then the docker push action fails...
+    adminUserEnabled: false
     publicNetworkAccess: 'Enabled'
     networkRuleSet: acrSku == 'Premium' ? {
       defaultAction: publicAccessEnabled ? 'Allow' : 'Deny'
