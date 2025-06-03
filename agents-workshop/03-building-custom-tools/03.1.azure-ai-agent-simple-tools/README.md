@@ -1,21 +1,25 @@
-# 03 - Building Custom Tools
+# 🛠️ 03 - Building Custom Tools
 
 ![Function Calling](https://learn.microsoft.com/en-us/semantic-kernel/media/functioncalling.png)
 
-## Simple Tool Calling
+## ⚡ Simple Tool Calling
 
-Tools/Plugins make the agent finally do useful things.
+Tools (also called Plugins) are what make your agent actually *do* things!
 
-More about [Plugins in Semantic Kernel](https://learn.microsoft.com/en-us/semantic-kernel/concepts/plugins/?pivots=programming-language-python)
+👉 **Learn more:** [Plugins in Semantic Kernel](https://learn.microsoft.com/en-us/semantic-kernel/concepts/plugins/?pivots=programming-language-python)
 
-### Adding plugins/functions/tools
+---
 
-First define your plugin in a Python class.
-Annotate functions with `@kernel_function(description="<Description of your function for the agent>")`.
+## 🧩 How to Add Plugins/Functions/Tools
 
-To add plugins for the agent, simply add them to `AzureAIAgent` definition in [agent.py](./agent.py).
+1. **Define your plugin as a Python class.**
+2. **Annotate functions** with  
+   `@kernel_function(description="<Description of your function for the agent>")`.
+
+3. **Register your plugin with the agent** by adding it to the `plugins` list in your `AzureAIAgent` definition in [`agent.py`](./agent.py):
 
 ```python
+# ...existing code...
 agent = AzureAIAgent(
     arguments=KernelArguments(kernel_settings),
     kernel=kernel,
@@ -30,6 +34,7 @@ agent = AzureAIAgent(
 Modify `KernelFactory` to add function filter used for logging:
 
 ```python
+# ...existing code...
 class KernelFactory:
     @staticmethod
     async def create_kernel(agent: Agent) -> Kernel:
@@ -142,6 +147,4 @@ class KernelFactory:
             return kernel
 ```
 
-
-- Demonstrate building a custom tool for Stack Overflow or Azure DevOps.
-- Discuss the on-behalf-of (OBO) authentication workflow.
+✨ **Now try adding your own tool and see your agent in action!** ✨

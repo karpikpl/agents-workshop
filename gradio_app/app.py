@@ -1,5 +1,7 @@
+import asyncio
 from typing import List
 import gradio as gr
+from gradio.components import ChatMessage
 from agent_chat import create_enterprise_chat
 
 # Use asyncio to run the async function in a sync context
@@ -78,9 +80,29 @@ async def chat_with_agent(user_message: dict, history: List[dict]):
 
     yield history, gr.MultimodalTextbox(interactive=False, value=None)
 
+    assistant_msg = ChatMessage(
+        role="assistant",
+        content="",
+        metadata={
+            "id": 1
+        })
+    response_chunks = [
+        "Hello! ",
+        "I'm your Azure AI Agent. ",
+        "How can I assist you today?"
+    ]
+    await asyncio.sleep(0.7)
+
+    for chunk in response_chunks:
+        assistant_msg.content += chunk
+        # Always yield a new list object for streaming
+        yield history + [assistant_msg], gr.MultimodalTextbox(interactive=False, value=None)
+        await asyncio.sleep(0.7)
+
+
     async for new_history in enterprise_chat.azure_enterprise_chat(user_message, history):
         # print('\nupdating history')
-        yield new_history, gr.MultimodalTextbox(interactive=False, value=None)
+        yield [] + new_history, gr.MultimodalTextbox(interactive=False, value=None)
 
 
 with gr.Blocks(

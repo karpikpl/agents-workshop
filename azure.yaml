@@ -33,15 +33,27 @@ hooks:
     windows:
       shell: pwsh
       run: |
-        $myIP = $(Invoke-WebRequest -Uri "https://api.ipify.org").Content
+        try {
+          $myIP = $(Invoke-WebRequest -Uri "https://api.ipify.org" -ErrorAction Stop).Content
+        } catch {
+          Write-Warning "Could not retrieve public IP from ipify. Setting MY_IP to empty."
+          $myIP = ""
+        }
         azd env set MY_IP $myIP
       interactive: false
       continueOnError: false
     posix:
       shell: sh
       run: |
+        set +e
         myIP=$(curl -s https://api.ipify.org)
+        if [ -z "$myIP" ]; then
+          echo "Warning: Could not retrieve public IP from ipify. Setting MY_IP to empty."
+          myIP=""
+        fi
+        echo "MY_IP=$myIP"
         azd env set MY_IP "$myIP"
+        set -e
       interactive: false
       continueOnError: false
   postprovision:

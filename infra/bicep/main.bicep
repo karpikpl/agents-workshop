@@ -72,6 +72,8 @@ param publicAccessEnabled bool = true
 param addRoleAssignments bool = true
 @description('Should an Entra App Registration be created?')
 param addAppRegistration bool = true
+@description('Should a private link be created for the Search Service?')
+param addPrivateLinkForSearch bool = true
 
 // --------------------------------------------------------------------------------------------------------------
 // -- Variables -------------------------------------------------------------------------------------------------
@@ -244,7 +246,7 @@ module searchService './core/search/search-services.bicep' = {
   }
 }
 
-module searchServicePrivateLink './core/search/search-privatelink.bicep' = {
+module searchServicePrivateLink './core/search/search-privatelink.bicep' = if(addPrivateLinkForSearch) {
   name: 'search-privatelink'
   params: {
     searchName: searchService.outputs.name

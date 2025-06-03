@@ -51,14 +51,19 @@ AI Agents are autonomous programs that can reason, plan, and act to accomplish t
 
 ## Prerequisites
 
-### Tools
+WSL2 is the recommended deployment environment.
+
+
+### 🛠️ Tools
 
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 - [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
 - [UV](https://docs.astral.sh/uv/getting-started/installation/) (for Python version and package management)
   - Example: `uv python install 3.12`
 - Python 3.12
+- Python 3.13 for Gradio App
 - [Optional] [VSCode](https://code.visualstudio.com/download)
+- [Optional] Docker - required when deploying Azure Container Apps (when not available, service deployment has to be commented out in [azure.yaml](./azure.yaml))
 
 ### Azure
 
@@ -96,7 +101,14 @@ To deploy with minimal permissions:
    azd env set ADD_ROLE_ASSIGNMENTS False
    azd env set ADD_APP_REGISTRATION False
    ```
-3. Manually assign the following roles to the user-assigned identity:
+
+  If private link is not enabled, disable private link for search using `ADD_PRIVATE_LINK_FOR_SEARCH` flag
+   ```bash
+   azd env set ADD_PRIVATE_LINK_FOR_SEARCH False
+   ```
+
+4. Deploy with `azd up`
+5. Manually assign the following roles to the user-assigned identity:
    - `Keyvault Secret Officer` on KeyVault
    - `Keyvault Contributor` on KeyVault
    - `ACR Pull Role` on Azure Container Registry

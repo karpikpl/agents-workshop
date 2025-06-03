@@ -4,9 +4,8 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
-            "name": "Debug Chat App",
+            "name": "Debug Streamlit App",
             "type": "debugpy",
             "request": "launch",
             "module": "streamlit",
@@ -19,6 +18,35 @@
                 "--server.address",
                 "0.0.0.0"
             ]
-        }
+        },
+        {
+            "name": "Debug Gradio App",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "cwd": "${workspaceFolder}/gradio_app",
+            "args": [
+                "main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8001"
+            ]
+        },
+                {
+            "name": "Debug Demo App",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "cwd": "${workspaceFolder}/demo_app",
+            "args": [
+                "run",
+                "chat.py",
+                "--server.port",
+                "8501",
+                "--server.address",
+                "0.0.0.0"
+            ]
+        },
     ]
 }

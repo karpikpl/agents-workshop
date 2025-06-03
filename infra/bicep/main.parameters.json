@@ -64,6 +64,9 @@
       },
       "addAppRegistration": {
         "value": "${ADD_APP_REGISTRATION=true}"
+      },
+      "addPrivateLinkForSearch": {
+        "value": "${ADD_PRIVATE_LINK_FOR_SEARCH=true}"
       }
     }
   }

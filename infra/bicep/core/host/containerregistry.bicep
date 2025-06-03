@@ -39,7 +39,7 @@ resource newContainerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01
     name: acrSku
   }
   properties: {
-    adminUserEnabled: false
+    adminUserEnabled: true // required for azd ?
     publicNetworkAccess: 'Enabled'
     networkRuleSet: acrSku == 'Premium' ? {
       defaultAction: publicAccessEnabled ? 'Allow' : 'Deny'
