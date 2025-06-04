@@ -405,25 +405,27 @@ module simple_chat './core/host/container-app-upsert.bicep' = {
       { name: 'AZURE_OPENAI_ENDPOINT', value: openAI.outputs.endpoint }
       { name: 'AZURE_OPENAI_DEPLOYMENT', value: openAI_model }
       { name: 'AZURE_OPENAI_API_VERSION', value: openAI_api_version }
-      { name: 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME', value: openAI_model }
+      { name: 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME', value: openAI_agents_model }
       { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: openAI.outputs.textEmbeddings[1].name }
       { name: 'AZURE_PATTERNS_SEARCH_INDEX', value: greenSoftwareSearchIndexName }
       { name: 'AZURE_COMPUTE_SEARCH_INDEX', value: computeDataSearchIndexName }
       { name: 'AZURE_SEARCH_ENDPOINT', value: searchService.outputs.endpoint }
+      { name: 'AZURE_MAPS_CLIENT_ID', value: maps.outputs.clientId }
       {
         name: 'AZURE_AI_FOUNDRY_CONNECTION_STRING'
         value: empty(aiProject) ? '' : aiProject.outputs.projectConnectionString
       }
+      { name: 'AZURE_CLIENT_ID', value: identity.outputs.managedIdentityClientId }
+
       { name: 'AZURE_AI_PROJECT_RESEARCH_AGENT_NAME', value: agentName }
       { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: logAnalytics.outputs.appInsightsConnectionString }
-      { name: 'AZURE_CLIENT_ID', value: identity.outputs.managedIdentityClientId }
       { name: 'AZURE_SDK_TRACING_IMPLEMENTATION', value: 'opentelemetry' }
       { name: 'AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED', value: 'true' }
       { name: 'SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS', value: 'true' }
       { name: 'SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE', value: 'true' }
       { name: 'APPLICATIONINSIGHTS_STATSBEAT_DISABLED_ALL', value: 'true' }
       { name: 'APPLICATIONINSIGHTS_METRIC_NAMESPACE_OPT_IN', value: 'false' }
-      { name: 'AZURE_MAPS_CLIENT_ID', value: maps.outputs.clientId }
+      { name: 'CONSOLE_LOGGING', value: 'false' }
     ]
     secrets: {}
   }

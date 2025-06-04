@@ -32,18 +32,27 @@ AI Agents are autonomous programs that can reason, plan, and act to accomplish t
 
 2. **Single Agent Example**
    - Walkthrough of creating an agent using the Python SDK
-   - Introduction to built-in tools and integrations (e.g., AI search, Bing grounding)
+   - Agents key components and architecture
+   - Configuring agent behaviors and capabilities
 
    Go to 👉[README.md](./agents-workshop/02-single-agent-example/README.md).
 
 3. **Building Custom Tools**
-   - Build a custom tool for Stack Overflow or Azure DevOps
-   - Discuss the on-behalf-of (OBO) authentication workflow
+   - Understanding Tool Calling with Azure OpenAI models
+   - Introduction to built-in tools and integrations (e.g., AI search, Bing grounding)
+   - Creating Semantic Kernel plugins for agent extensibility
+   - Integrating external services with OpenAPI specifications
+   - **Stretch goal** - Configure authentication for tools using On-Behalf-Of (OBO) flow
+   - **Stretch goal** - Create complex custom tools for specific services like Stack Overflow or Azure DevOps
+
+   Go to 👉[README.md](./agents-workshop/03-building-custom-tools/README.md).
 
 4. **Multi-Agent Workflows**
-   - Introduction to Semantic Kernel and its applications
+   - Agent as Tool
    - Example of a router agent for question routing
    - Upcoming orchestration capabilities in Azure AI agent service
+
+   Go to 👉[README.md](./agents-workshop/04-multi-agent-workflows/README.md).
 
 5. **Wrap-Up and Next Steps**
    - Summarize key learnings and takeaways
@@ -53,7 +62,7 @@ AI Agents are autonomous programs that can reason, plan, and act to accomplish t
 
 ## Prerequisites
 
-WSL2 is the recommended deployment environment.
+WSL2 is the recommended deployment environment and local development.
 
 
 ### 🛠️ Tools

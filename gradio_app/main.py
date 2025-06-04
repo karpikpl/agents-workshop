@@ -1,6 +1,7 @@
 import signal
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import gradio as gr
 from app import demo
 from starlette.responses import RedirectResponse
@@ -80,12 +81,23 @@ async def auth(request: Request):
     request.session["user"] = dict(token)["userinfo"]
     return RedirectResponse(url="/")
 
-
 @app.route("/logout")
 async def logout(request: Request):
     request.session.pop("user", None)
     return RedirectResponse(url="/")
 
+@app.route("/health")
+async def health_check(request: Request):
+    return JSONResponse(content={"status": "ok"})
+
+@app.route("/ready")
+async def ready_check(request: Request):
+    if demo:
+        return JSONResponse(content={"status": "ready"})
+    return JSONResponse(
+        content={"status": "not ready"}, 
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE
+    )
 
 # Mount Gradio app with Entra ID auth
 # app = gr.mount_gradio_app(app, demo, path="/", auth_dependency=get_user)

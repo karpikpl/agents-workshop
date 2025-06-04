@@ -51,6 +51,7 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
       category: 'CosmosDB'
       target: cosmosDBAccount.properties.documentEndpoint
       authType: 'AAD'
+      isSharedToAll: true
       metadata: {
         ApiType: 'Azure'
         ResourceId: cosmosDBAccount.id
@@ -65,6 +66,7 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
       category: 'AzureStorageAccount'
       target: storageAccount.properties.primaryEndpoints.blob
       authType: 'AAD'
+      isSharedToAll: true
       metadata: {
         ApiType: 'Azure'
         ResourceId: storageAccount.id
@@ -79,6 +81,7 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
       category: 'CognitiveSearch'
       target: 'https://${aiSearchName}.search.windows.net'
       authType: 'AAD'
+      isSharedToAll: true
       metadata: {
         ApiType: 'Azure'
         ResourceId: searchService.id

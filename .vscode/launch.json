@@ -5,21 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Streamlit App",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "streamlit",
-            "cwd": "${workspaceFolder}/agents-workshop/03-building-custom-tools/03.5.on-behalf-of",
-            "args": [
-                "run",
-                "chat.py",
-                "--server.port",
-                "8501",
-                "--server.address",
-                "0.0.0.0"
-            ]
-        },
-        {
             "name": "Debug Gradio App",
             "type": "debugpy",
             "request": "launch",
@@ -34,11 +19,11 @@
             ]
         },
         {
-            "name": "Debug Demo App",
+            "name": "Debug Streamlit App",
             "type": "debugpy",
             "request": "launch",
             "module": "streamlit",
-            "cwd": "${workspaceFolder}/demo_app",
+            "cwd": "${workspaceFolder}/streamlit_app",
             "args": [
                 "run",
                 "chat.py",
