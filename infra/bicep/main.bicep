@@ -404,7 +404,7 @@ module simple_chat './core/host/container-app-upsert.bicep' = {
     env: [
       { name: 'AZURE_OPENAI_ENDPOINT', value: openAI.outputs.endpoint }
       { name: 'AZURE_OPENAI_DEPLOYMENT', value: openAI_model }
-      { name: 'AZURE_OPENAI_API_VERSION', value: openAI_api_version }
+      // { name: 'AZURE_OPENAI_API_VERSION', value: openAI_api_version }
       { name: 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME', value: openAI_agents_model }
       { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: openAI.outputs.textEmbeddings[1].name }
       { name: 'AZURE_PATTERNS_SEARCH_INDEX', value: greenSoftwareSearchIndexName }
