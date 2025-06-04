@@ -97,7 +97,13 @@ This will provision all necessary Azure resources:
 
 To share resources, assign users the `Azure AI User` role to enable access to AI Foundry.
 
-> **Important:** By default, `azd` deployment configures firewalls to allow only the deployer's IP. To share resources, adjust firewall settings as needed.
+> [!IMPORTANT]
+> By default, `azd` deployment configures firewalls to allow only the deployer's IP. To share resources, adjust firewall settings as needed or disable firewall with ```azd env set ADD_FIREWALL_RULE_FOR_MY_IP False```
+
+> **💡Tip:** To create Entra App Registration during the deployment, enable it using: 
+> ```bash
+> azd env set ADD_APP_REGISTRATION True
+> ```
 
 ### Deploying with Contributor-Only Permissions
 
@@ -110,7 +116,6 @@ To deploy with minimal permissions:
 2. Set azd variables:
    ```bash
    azd env set ADD_ROLE_ASSIGNMENTS False
-   azd env set ADD_APP_REGISTRATION False
    ```
 
   If private link is not enabled, disable private link for search using `ADD_PRIVATE_LINK_FOR_SEARCH` flag
@@ -191,7 +196,15 @@ Each workshop task uses `uv` for Python version and package management.
    ```bash
    cd agents-workshop/02-single-agent-example/azure-ai-agent
    ```
-2. Follow the instructions in the `README.md` within each subfolder.
+2. Create python environment and install dependecies
+   ```bash
+   uv sync
+   ```
+3. Run the code
+   ```bash
+   uv run agent.py
+   ```   
+3. Follow the instructions in the `README.md` within each subfolder.
 
 ### Setting up `uv` and VS Code
 
@@ -203,7 +216,11 @@ Each directory is setup with it's own uv environment. To activate:
     <p align="left">
       <img src="assets/vscode_python.png" alt="VS Code Python setup" width="500"/>
     </p>
-
+3. For console apps, you can debug in VS Code using debugging menu:
+    <p align="left">
+      <img src="assets/vscode_debug.png" alt="VS Code Python setup" width="300"/>
+    </p>
+   For other types of applications - check [launch.json](./.vscode/launch.json) file.
 
 > **💡 Tip** When experiencing issues with python packages, try opening VS Code in the directory of the task.
 

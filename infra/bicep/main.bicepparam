@@ -40,7 +40,7 @@ param addRoleAssignments = bool(readEnvironmentVariable('ADD_ROLE_ASSIGNMENTS', 
 
 param openAI_deploy_location = readEnvironmentVariable('AZURE_OPENAI_DEPLOY_LOCATION', '')
 
-param addAppRegistration = bool(readEnvironmentVariable('ADD_APP_REGISTRATION', 'true'))
+param addAppRegistration = bool(readEnvironmentVariable('ADD_APP_REGISTRATION', 'false'))
 
 param addPrivateLinkForSearch = bool(readEnvironmentVariable('ADD_PRIVATE_LINK_FOR_SEARCH', 'true'))
 

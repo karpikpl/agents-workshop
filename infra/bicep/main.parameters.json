@@ -63,7 +63,7 @@
         "value": "${AZURE_OPENAI_DEPLOY_LOCATION}"
       },
       "addAppRegistration": {
-        "value": "${ADD_APP_REGISTRATION=true}"
+        "value": "${ADD_APP_REGISTRATION=false}"
       },
       "addPrivateLinkForSearch": {
         "value": "${ADD_PRIVATE_LINK_FOR_SEARCH=true}"
