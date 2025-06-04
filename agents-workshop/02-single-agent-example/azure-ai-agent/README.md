@@ -6,7 +6,7 @@ Welcome! This workshop will guide you through creating and interacting with your
 
 ## 🚦 Prerequisites
 
-- 🐍 Python 3.8+
+- 🐍 Python 3.12+
 - ☁️ Azure subscription with access to Azure OpenAI and AI Foundry
 - 🛡️ Required environment variables set:
   - `AZURE_AI_FOUNDRY_CONNECTION_STRING`
