@@ -14,7 +14,7 @@ from semantic_kernel.agents import (
     AzureAIAgentThread,
 )
 from azure.ai.projects.aio import AIProjectClient
-from agent import create_agent, create_project_client
+from agent_factory import create_agent, create_project_client
 
 from semantic_kernel.contents import (
     ChatMessageContent,
@@ -26,6 +26,11 @@ from semantic_kernel.contents import (
     StreamingTextContent,
     TextContent,
     ImageContent,
+)
+
+from azure.ai.agents.models import (
+    # FileSearchTool,
+    FilePurpose,
 )
 
 app_logger = logging.getLogger("workshop.agent")
@@ -184,35 +189,78 @@ class EnterpriseChat:
             conversation.append(msg_obj)
             in_progress_tools[call_id] = msg_obj
 
-        intermediate_steps: list[ChatMessageContent] = []
-
         async def handle_streaming_intermediate_steps(step: ChatMessageContent):
-            intermediate_steps.append(step)
             for item in step.items or []:
                 if isinstance(item, FunctionResultContent):
-                    print(f"Function Result:> {item.result} for function: {item.name}")
+                    app_logger.info(
+                        f"Function Result:> {item.result} for function: {item.name}"
+                    )
                     upsert_tool_call(item)
                 elif isinstance(item, FunctionCallContent):
-                    print(
+                    app_logger.info(
                         f"Function Call:> {item.name} with arguments: {item.arguments}"
                     )
                     upsert_tool_call(item)
                 else:
-                    print(f"UNKNOWN {item}")
+                    # most likely code returned from a tool
+                    # TODO: handle code snippets
 
-        items = []
+                    app_logger.warning(f"Unknown item in intermediate steps: {item}")
+
+        message = ChatMessageContent(role="user", content=user_message["text"] or "")
 
         if user_message["files"]:
+            file_path: str
             for file_path in user_message["files"]:
-                # uploaded = await self.client.agents.files.upload_and_poll(file_path=file_path, purpose=FilePurpose.AGENTS)
+                uploaded = await self.client.agents.files.upload_and_poll(
+                    file_path=file_path, purpose=FilePurpose.AGENTS
+                )
                 # todo = specify tools for the attachment
                 # attachment = MessageAttachment(file_id=uploaded.id, tools=CodeInterpreterTool().definitions + FileSearchTool().definitions)
-                items.append(ImageContent.from_image_file(path=file_path))
 
-        # convert user_message to a ChatMessageContent from semantic_kernel.contents
-        message = ChatMessageContent(
-            role="user", content=user_message["text"] or "", items=items
-        )
+                if file_path.lower().endswith((".png", ".jpg", ".jpeg", ".gif")):
+                    message.items.append(ImageContent.from_image_file(path=file_path))
+
+                # Update tools with file attachment
+                #  tools_definitions,tool_resources = await setup_tools(client=self.client, file_attachment_path=file_path)
+
+                # get thread
+                agent_thread = await self.client.agents.threads.get(
+                    thread_id=self.thread.id,
+                )
+
+                if (
+                    not agent_thread.tool_resources
+                    or not agent_thread.tool_resources.code_interpreter
+                ):
+                    break
+
+                # Update files
+                agent_thread.tool_resources.code_interpreter.file_ids = (
+                    agent_thread.tool_resources.code_interpreter.file_ids
+                    + [uploaded.id]
+                )
+
+                # Probably a bug in the SDK, so we need to update the tool resources manually
+                if (
+                    agent_thread.tool_resources
+                    and agent_thread.tool_resources.azure_ai_search
+                    and len(agent_thread.tool_resources.azure_ai_search.index_list) == 0
+                ):
+                    agent_thread.tool_resources.azure_ai_search = None
+
+                # Update the thread with the new tool resources
+                agent_thread = await self.client.agents.threads.update(
+                    thread_id=self.thread.id,
+                    tool_resources=agent_thread.tool_resources,
+                )
+                # update Azure AI Agent Thread
+                self.thread = AzureAIAgentThread(
+                    client=self.client,
+                    thread_id=agent_thread.id,
+                    tool_resources=agent_thread.tool_resources,
+                )
+                break  # only handle the first file for now
 
         # -- EVENT STREAMING --
         first_chunk = True
@@ -236,15 +284,21 @@ class EnterpriseChat:
             for item in response.items:
                 event_type, event_data, *_ = item
 
-                if not isinstance(item, StreamingTextContent):
-                    print("something's going DOWN!")
+                if (
+                    not isinstance(item, StreamingTextContent)
+                    and not isinstance(item, StreamingFileReferenceContent)
+                    and not isinstance(item, StreamingAnnotationContent)
+                ):
+                    app_logger.warning(f"Unknown item in response: {item}")
 
                 if isinstance(item, FunctionResultContent):
                     # this result is never returned - it's handled in on_intermediate_message
-                    print(f"Function Result:> {item.result} for function: {item.name}")
+                    app_logger.info(
+                        f"Function Result:> {item.result} for function: {item.name}"
+                    )
                 elif isinstance(item, FunctionCallContent):
                     # this result is never returned - it's handled in on_intermediate_message
-                    print(
+                    app_logger.info(
                         f"Function Call:> {item.name} with arguments: {item.arguments}"
                     )
                 elif isinstance(item, StreamingAnnotationContent):

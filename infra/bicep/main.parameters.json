@@ -67,6 +67,9 @@
       },
       "addPrivateLinkForSearch": {
         "value": "${ADD_PRIVATE_LINK_FOR_SEARCH=true}"
+      },
+      "addFirewallRuleForMyIp": {
+        "value": "${ADD_FIREWALL_RULE_FOR_MY_IP=true}"
       }
     }
   }

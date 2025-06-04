@@ -147,9 +147,9 @@ def setup_otel():
     set_up_metrics()
 
 
-def get_span(name: str):
+def get_span(name: str, attributes=None) -> trace.Span:
     """Get a span with the given name."""
     tracer = trace.get_tracer(__name__)
-    current_span = tracer.start_as_current_span(name)
+    current_span = tracer.start_as_current_span(name, attributes=attributes)
     # print(f"Trace ID: {format_trace_id(current_span.get_span_context().trace_id)}")
     return current_span

@@ -1,6 +1,6 @@
 ## 📝 Workshop Tasks
 
-> For each workshop task, you can either use one of agent apps created in previous modules (console applications) or more advanced sample from [on-behalf-of UI Application built with gradio](../../../gradio-app/main.py)
+> For each workshop task, you can either use one of agent apps created in previous modules (console applications) or more advanced sample from [on-behalf-of UI Application built with gradio](../../../gradio_app/main.py)
 
 ### Task 1: 🌦️ Connect to a Weather API with OpenApiTool
 

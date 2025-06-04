@@ -14,6 +14,7 @@ from semantic_kernel.agents import (
     AzureAIAgentThread,
     AzureAIAgentSettings,
 )
+
 from semantic_kernel.connectors.ai.prompt_execution_settings import (
     PromptExecutionSettings,
 )
@@ -84,7 +85,7 @@ async def create_agent(
     )
 
     kernel_settings = PromptExecutionSettings(
-        function_choice_behavior=FunctionChoiceBehavior.Auto()
+        function_choice_behavior=FunctionChoiceBehavior.Auto(),
     )
 
     kernel = await KernelFactory.create_kernel(agent_definition)

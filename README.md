@@ -34,6 +34,8 @@ AI Agents are autonomous programs that can reason, plan, and act to accomplish t
    - Walkthrough of creating an agent using the Python SDK
    - Introduction to built-in tools and integrations (e.g., AI search, Bing grounding)
 
+   Go to 👉[README.md](./agents-workshop/02-single-agent-example/README.md).
+
 3. **Building Custom Tools**
    - Build a custom tool for Stack Overflow or Azure DevOps
    - Discuss the on-behalf-of (OBO) authentication workflow
@@ -106,9 +108,8 @@ To deploy with minimal permissions:
    ```bash
    azd env set ADD_PRIVATE_LINK_FOR_SEARCH False
    ```
-
 4. Deploy with `azd up`
-5. Manually assign the following roles to the user-assigned identity:
+5. Manually assign the following roles to the manged identity in the resource group:
    - `Keyvault Secret Officer` on KeyVault
    - `Keyvault Contributor` on KeyVault
    - `ACR Pull Role` on Azure Container Registry
@@ -122,6 +123,55 @@ To deploy with minimal permissions:
    - `Search Service Contributor` on AI Search
    - `Azure Maps Data Reader` on Maps
 
+   > Roles can be assigned on the Resource Group level.
+
+   <details>
+  <summary>Azure CLI Bash script for permissions</summary>
+    ```bash
+    set -e
+
+    RG_NAME="$1"
+    IDENTITY_NAME="$2"
+
+    if [[ -z "$RG_NAME" || -z "$IDENTITY_NAME" ]]; then
+      echo "Usage: $0 <resource-group> <identity-name>"
+      exit 1
+    fi
+
+    ##### Get the managed identity principalId
+    IDENTITY_PRINCIPAL_ID=$(az identity show -g "$RG_NAME" -n "$IDENTITY_NAME" --query 'principalId' -o tsv)
+
+    ##### Role definitions
+    declare -A ROLES=(
+      ["Key Vault Secrets Officer"]="b86a8fe4-44ce-4948-aee5-eccb2c155cd7"
+      ["Key Vault Contributor"]="f25e0fa2-a7c8-4377-a976-54943a77a395"
+      ["AcrPull"]="7f951dda-4ed3-4680-a7ca-43fe172d538d"
+      ["Storage Blob Data Contributor"]="ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+      ["Cognitive Services OpenAI Contributor"]="e2d1a6a3-7f7b-4c3b-8b2b-1a1b6b7c7c74"
+      ["Cognitive Services User"]="b1e7c3c0-8070-4c0f-9a3e-5c1e1d6a7c6e"
+      ["Cognitive Services OpenAI User"]="bbed9e0c-87a6-4b4c-8c5c-1a1b6b7c7c74"
+      ["Cognitive Services Contributor"]="a97b65f3-24c7-4388-8c0a-4a2a2b1c5c0e"
+      ["Search Index Data Contributor"]="5984c3c4-9d3c-4b66-a7b1-3f7f7f7f7f7f"
+      ["Search Index Data Reader"]="b1e7c3c0-8070-4c0f-9a3e-5c1e1d6a7c6e"
+      ["Search Service Contributor"]="de139f84-1756-47ae-9be6-808fbbe84772"
+      ["Azure Maps Data Reader"]="e4e6a7c1-8c8b-4c8b-8c8b-8c8b8c8b8c8b"
+    )
+
+    ##### Assign roles
+    for ROLE_NAME in "${!ROLES[@]}"; do
+      ROLE_ID="${ROLES[$ROLE_NAME]}"
+      echo "Assigning '$ROLE_NAME' ($ROLE_ID) to $IDENTITY_NAME on resource group $RG_NAME..."
+      az role assignment create \
+        --assignee-object-id "$IDENTITY_PRINCIPAL_ID" \
+        --role "$ROLE_ID" \
+        --resource-group "$RG_NAME"
+    done
+
+    echo "All roles assigned."
+    ```
+</details>
+6. Re-deploy with `azd up`
+
 ---
 
 ## Working on Workshop Tasks
@@ -134,12 +184,19 @@ Each workshop task uses `uv` for Python version and package management.
    ```
 2. Follow the instructions in the `README.md` within each subfolder.
 
----
+### Setting up `uv` and VS Code
 
-## Materials
+Each directory is setup with it's own uv environment. To activate:
 
-- [Hackathon from MS Learn](https://learn.microsoft.com/en-us/semantic-kernel/support/hackathon-materials)
-- [🔥 MS Build 2025 - Build your code-first agent with Azure AI Foundry Workshop](https://microsoft.github.io/build-your-first-agent-with-azure-ai-agent-service-workshop/)
+1. Run `uv sync`
+2. Change VS Code Python interpreter using "Ctrl+Shift+P" and selecting `Python: Select Interpreter`. Choose one just activated by navigating to `<task directory>/.venv/lib/python3.12/` (or python 3.13 for gradio).
+
+    <p align="left">
+      <img src="assets/vscode_python.png" alt="VS Code Python setup" width="500"/>
+    </p>
+
+
+> **💡 Tip** When experiencing issues with python packages, try opening VS Code in the directory of the task.
 
 ---
 
@@ -158,5 +215,10 @@ Each workshop task uses `uv` for Python version and package management.
 - Experiment! Try connecting your agent to other APIs or tools.
 
 ---
+
+## Other Materials
+
+- [Hackathon from MS Learn](https://learn.microsoft.com/en-us/semantic-kernel/support/hackathon-materials)
+- [🔥 MS Build 2025 - Build your code-first agent with Azure AI Foundry Workshop](https://microsoft.github.io/build-your-first-agent-with-azure-ai-agent-service-workshop/)
 
 Happy hacking! 🤖✨

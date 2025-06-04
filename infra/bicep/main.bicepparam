@@ -43,3 +43,5 @@ param openAI_deploy_location = readEnvironmentVariable('AZURE_OPENAI_DEPLOY_LOCA
 param addAppRegistration = bool(readEnvironmentVariable('ADD_APP_REGISTRATION', 'true'))
 
 param addPrivateLinkForSearch = bool(readEnvironmentVariable('ADD_PRIVATE_LINK_FOR_SEARCH', 'true'))
+
+param addFirewallRuleForMyIp = bool(readEnvironmentVariable('ADD_FIREWALL_RULE_FOR_MY_IP', 'true'))

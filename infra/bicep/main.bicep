@@ -23,6 +23,7 @@ param openAI_agents_model_version string = '2025-04-14'
 // --------------------------------------------------------------------------------------------------------------
 @description('My IP address for network access')
 param myIpAddress string = ''
+var allowedIpAddress = addFirewallRuleForMyIp ? myIpAddress : ''
 @description('Id of the user executing the deployment')
 param principalId string = ''
 
@@ -74,6 +75,8 @@ param addRoleAssignments bool = true
 param addAppRegistration bool = true
 @description('Should a private link be created for the Search Service?')
 param addPrivateLinkForSearch bool = true
+@description('Should firewall rules be added for the user\'s IP address?')
+param addFirewallRuleForMyIp bool = true
 
 // --------------------------------------------------------------------------------------------------------------
 // -- Variables -------------------------------------------------------------------------------------------------
@@ -119,7 +122,7 @@ module containerRegistry './core/host/containerregistry.bicep' = {
     acrSku: publicAccessEnabled ? 'Basic' : 'Premium'
     tags: tags
     publicAccessEnabled: publicAccessEnabled
-    myIpAddress: myIpAddress
+    myIpAddress: allowedIpAddress
   }
 }
 
@@ -146,7 +149,7 @@ module storage './core/storage/storage-account.bicep' = {
     location: location
     tags: tags
     publicNetworkAccess: publicAccessEnabled
-    myIpAddress: myIpAddress
+    myIpAddress: allowedIpAddress
     containers: ['data', 'batch-input', 'batch-output', 'patterns-index-data', 'compute-index-data']
     resourcesWithAccess: [
       {
@@ -211,7 +214,7 @@ module keyVault './core/security/keyvault.bicep' = {
       }
     ]
     publicNetworkAccess: publicAccessEnabled ? 'Enabled' : 'Disabled'
-    keyVaultOwnerIpAddress: myIpAddress
+    keyVaultOwnerIpAddress: allowedIpAddress
     createUserAssignedIdentity: false
     useRBAC: true
     addRoleAssignments: addRoleAssignments
@@ -237,7 +240,7 @@ module searchService './core/search/search-services.bicep' = {
     location: location
     name: resourceNames.outputs.searchServiceName
     publicNetworkAccess: publicAccessEnabled ? 'enabled' : 'disabled'
-    myIpAddress: myIpAddress
+    myIpAddress: allowedIpAddress
     semanticSearch: actualSearchServiceSemanticRankerLevel
     managedIdentityId: identity.outputs.managedIdentityId
     sku: {
@@ -266,7 +269,6 @@ module openAI './core/ai/cognitive-services.bicep' = {
     location: !empty(openAI_deploy_location) ? openAI_deploy_location : location // this may be different than the other resources
     kind: 'AIServices'
     tags: tags
-    appInsightsName: logAnalytics.outputs.applicationInsightsName
     textEmbeddings: [
       {
         name: 'text-embedding'
@@ -312,7 +314,7 @@ module openAI './core/ai/cognitive-services.bicep' = {
       }
     }
     publicNetworkAccess: publicAccessEnabled ? 'Enabled' : 'Disabled'
-    myIpAddress: myIpAddress
+    myIpAddress: allowedIpAddress
   }
   dependsOn: [
     searchService
@@ -328,6 +330,9 @@ module aiProject 'core/ai/ai-project.bicep' = {
     display_name: aiProjectFriendlyName
     description: aiProjectDescription
     managedIdentityId: identity.outputs.managedIdentityId
+    aiSearchName: searchService.outputs.name
+    appInsightsName: logAnalytics.outputs.applicationInsightsName
+    azureStorageName: storage.outputs.name
     location: location
     tags: tags
   }
@@ -389,7 +394,7 @@ module simple_chat './core/host/container-app-upsert.bicep' = {
     appName: resourceNames.outputs.containerChatName
     location: location
     targetPort: 8501
-    myIpAddress: myIpAddress
+    myIpAddress: allowedIpAddress
     exists: chatAppExists
     imageName: chatImageName
     managedEnvironmentName: managedEnvironment.outputs.name

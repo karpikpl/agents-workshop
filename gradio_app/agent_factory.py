@@ -10,7 +10,6 @@ import logging
 import os
 from azure.identity.aio import DefaultAzureCredential
 from azure.ai.projects.aio import AIProjectClient
-import requests
 from semantic_kernel.agents import (
     AzureAIAgent,
     AzureAIAgentThread,
@@ -24,12 +23,12 @@ from semantic_kernel.functions import KernelArguments
 from azure.ai.agents.models import (
     BingGroundingTool,
     CodeInterpreterTool,
-    FileSearchTool,
+    # FileSearchTool,
+    FilePurpose,
+    ToolDefinition,
+    ToolResources,
     OpenApiTool,
-    OpenApiConnectionAuthDetails,
-    OpenApiConnectionSecurityScheme,
-    OpenApiManagedAuthDetails,
-    OpenApiManagedSecurityScheme
+    OpenApiAnonymousAuthDetails,
 )
 
 from dotenv import load_dotenv
@@ -76,6 +75,56 @@ def create_project_client() -> tuple[AIProjectClient, DefaultAzureCredential]:
     return client, creds
 
 
+async def setup_tools(
+    client: AIProjectClient, file_attachment_path: str = None
+) -> tuple[list[ToolDefinition], ToolResources]:
+
+    tool_definitions = []
+    tool_resources = ToolResources()
+
+    # Setup Bing Grounding Tool -------------
+    bing_connection_id = None
+    # get all connections
+    async for connection in client.connections.list(
+        connection_type="GroundingWithBingSearch"
+    ):
+        app_logger.info(f"Connection: {connection.name} - {connection.id}")
+        bing_connection_id = connection.id
+        bing = BingGroundingTool(
+            connection_id=bing_connection_id, market="en-US", count=10
+        )
+        tool_definitions = tool_definitions + bing.definitions
+        break
+
+    # Setup Code Interpreter Tool -------------
+    if file_attachment_path:
+        uploaded = await client.agents.files.upload_and_poll(
+            file_path=file_attachment_path, purpose=FilePurpose.AGENTS
+        )
+        code_interpreter = CodeInterpreterTool(file_ids=[uploaded.id])
+    else:
+        code_interpreter = CodeInterpreterTool()
+    tool_definitions = tool_definitions + code_interpreter.definitions
+    tool_resources.code_interpreter = code_interpreter.resources.code_interpreter
+
+    # Setup File Search Tool -------------
+    # file_search = FileSearchTool()
+
+    # Setup OpenAPI Tool -------------
+    with open(os.path.join("weather.json")) as weather_file:
+        weather_openapi_spec = json.loads(weather_file.read())
+    auth = OpenApiAnonymousAuthDetails()
+    openapi_weather = OpenApiTool(
+        name="get_weather",
+        spec=weather_openapi_spec,
+        description="Retrieve weather information for a location",
+        auth=auth,
+    )
+    tool_definitions = tool_definitions + openapi_weather.definitions
+
+    return tool_definitions, tool_resources
+
+
 async def create_agent(
     agent_name: str, agent_instructions: str, client: AIProjectClient
 ) -> AzureAIAgent:
@@ -99,49 +148,10 @@ async def create_agent(
             )
             break
 
-    bing_connection_id = None
-    # get all connections
-    async for connection in client.connections.list(
-        connection_type="GroundingWithBingSearch"
-    ):
-        app_logger.info(f"Connection: {connection.name} - {connection.id}")
-        bing_connection_id = connection.id
-
     # async for connection in client.connections.list():
     #     app_logger.info(f"Connection: {connection.name} - {connection.id}")
 
-    bing = BingGroundingTool(connection_id=bing_connection_id, market="en-US", count=10)
-    code_interpreter = CodeInterpreterTool()
-    file_search = FileSearchTool()
-
-    # download spec from Azure Maps Weather Service
-    # "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/maps/data-plane/Microsoft.Maps/Weather/preview/1.0/weather.json"
-    
-    weather_spec_file = "weather_spec.json"
-    with open(weather_spec_file, "r", encoding="utf-8") as f:
-         file_content = f.read()
-    
-    azure_maps_client_id = os.environ.get("AZURE_MAPS_CLIENT_ID", "<your-azure-maps-client-id>")
-    file_content = file_content.replace("AZURE_MAPS_CLIENT_ID", azure_maps_client_id)
-    weather_spec_dict = json.loads(file_content)
-    
-    openapi_weather = OpenApiTool(
-        name="WeatherAPI",
-        description='Azure Maps Weather Service provides real-time weather data for a given location.',
-        spec=weather_spec_dict,
-        auth=OpenApiManagedAuthDetails(security_scheme=OpenApiManagedSecurityScheme(audience="https://atlas.microsoft.com/")),
-        # default_parameters= [
-        #     'unit=imperial',
-        #     'x-ms-client-id='+ os.environ.get("AZURE_MAPS_CLIENT_ID", "<your-azure-maps-client-id>"),
-        # ]
-    )
-
-    tools = (
-        (bing.definitions if bing_connection_id else [])
-        + code_interpreter.definitions
-        + file_search.definitions
-        + openapi_weather.definitions
-    )
+    tool_definitions, tool_resources = await setup_tools(client)
 
     # Create an agent on the Azure AI agent service
     if existing_agent:
@@ -153,7 +163,8 @@ async def create_agent(
             model=ai_agent_settings.model_deployment_name,
             name=agent_name,
             instructions=agent_instructions,
-            tools=tools,
+            tools=tool_definitions,
+            tool_resources=tool_resources,
         )
     else:
         app_logger.info(f"Creating new agent: {agent_name}")
@@ -162,7 +173,8 @@ async def create_agent(
             model=ai_agent_settings.model_deployment_name,
             name=agent_name,
             instructions=agent_instructions,
-            tools=tools,
+            tools=tool_definitions,
+            tool_resources=tool_resources,
         )
 
     kernel_settings = PromptExecutionSettings(

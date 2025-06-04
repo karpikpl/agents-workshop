@@ -14,4 +14,4 @@ if (Test-Path -Path "/usr") {
 }
 
 Write-Host 'Installing dependencies from "setup_requirements.txt" into virtual environment'
-Start-Process -FilePath $venvPythonPath -ArgumentList "-m pip install -r demo_app/setup_requirements.txt" -Wait -NoNewWindow
+Start-Process -FilePath $venvPythonPath -ArgumentList "-m pip install -r setup/setup_requirements.txt" -Wait -NoNewWindow

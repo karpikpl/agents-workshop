@@ -33,7 +33,7 @@
                 "8001"
             ]
         },
-                {
+        {
             "name": "Debug Demo App",
             "type": "debugpy",
             "request": "launch",

@@ -1,7 +1,5 @@
-import asyncio
 from typing import List
 import gradio as gr
-from gradio.components import ChatMessage
 from agent_chat import create_enterprise_chat
 
 # Use asyncio to run the async function in a sync context
@@ -78,30 +76,17 @@ async def chat_with_agent(user_message: dict, history: List[dict]):
     if user_message["text"] is not None:
         history.append({"role": "user", "content": user_message["text"]})
 
-    yield history, gr.MultimodalTextbox(interactive=False, value=None)
+    assistant_msg = {
+        "role": "assistant",
+        "content": "Thinking..",
+        "metadata": {"status": "pending"},
+    }
+    yield history + [assistant_msg], gr.MultimodalTextbox(interactive=False, value=None)
 
-    assistant_msg = ChatMessage(
-        role="assistant",
-        content="",
-        metadata={
-            "id": 1
-        })
-    response_chunks = [
-        "Hello! ",
-        "I'm your Azure AI Agent. ",
-        "How can I assist you today?"
-    ]
-    await asyncio.sleep(0.7)
+    agent_response = enterprise_chat.azure_enterprise_chat(user_message, history)
 
-    for chunk in response_chunks:
-        assistant_msg.content += chunk
-        # Always yield a new list object for streaming
-        yield history + [assistant_msg], gr.MultimodalTextbox(interactive=False, value=None)
-        await asyncio.sleep(0.7)
-
-
-    async for new_history in enterprise_chat.azure_enterprise_chat(user_message, history):
-        # print('\nupdating history')
+    async for new_history in agent_response:
+        assistant_msg["metadata"]["status"] = "done"
         yield [] + new_history, gr.MultimodalTextbox(interactive=False, value=None)
 
 
@@ -114,7 +99,9 @@ with gr.Blocks(
         type="messages",
         examples=[
             {"text": "What's my company's remote work policy?"},
-            {"text": "Check if it will rain tomorrow?"},
+            {
+                "text": "What's the forecast for next 5 days for Redmond,WA? Build a table, use emojis."
+            },
             {"text": "How is Contoso's stock doing today?"},
             {"text": "Send my direct report a summary of the HR policy."},
         ],
@@ -131,6 +118,37 @@ with gr.Blocks(
         placeholder="Enter message or upload file...",
         show_label=False,
         sources=["upload"],
+        file_types=[
+            ".c",
+            ".cs",
+            ".cpp",
+            ".doc",
+            ".docx",
+            ".html",
+            ".java",
+            ".json",
+            ".md",
+            ".pdf",
+            ".php",
+            ".pptx",
+            ".py",
+            ".rb",
+            ".tex",
+            ".txt",
+            ".css",
+            ".js",
+            ".sh",
+            ".ts",
+            ".csv",
+            ".jpeg",
+            ".jpg",
+            ".gif",
+            ".png",
+            ".tar",
+            ".xlsx",
+            ".xml",
+            ".zip",
+        ],
     )
 
     chat_input.attach_load_event(get_enterprise_chat, every=None)

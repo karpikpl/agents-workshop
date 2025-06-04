@@ -34,19 +34,19 @@ cookie_secret = "$(openssl rand -base64 32)"
 
 [auth.microsoft]
 client_id = "${envDict['ENTRA_APP_ID']}"
-client_secret = "${envDict['ENTRA_APP_SECRET']}"
+authority = "https://login.microsoftonline.com/${envDict['AZURE_TENANT_ID']}"
 server_metadata_url = "https://login.microsoftonline.com/${envDict['AZURE_TENANT_ID']}/v2.0/.well-known/openid-configuration"
 client_kwargs = { "scope" = "openid profile email" }
 EOF
 )
 
-mkdir -p ./demo_app/.streamlit
-mkdir -p ./agents-workshop/02-single-agent-example/azure-ai-agent/.streamlit
-printf "%s" "$STREAMLIT_CONTENT" > ./demo_app/.streamlit/secrets.toml
-printf "%s" "$STREAMLIT_CONTENT" > ./agents-workshop/03-building-custom-tools/03.5.on-behalf-of/.streamlit/secrets.toml
+mkdir -p ./streamlit_app/.streamlit
+printf "%s" "$STREAMLIT_CONTENT" > ./streamlit_app/.streamlit/secrets.toml
 
-printf "%s" "$ENV_CONTENT" > ./demo_app/.env
+printf "%s" "$ENV_CONTENT" > ./streamlit_app/.env
+printf "%s" "$ENV_CONTENT" > ./gradio_app/.env
 printf "%s" "$ENV_CONTENT" > ./agents-workshop/02-single-agent-example/azure-ai-agent/.env
 printf "%s" "$ENV_CONTENT" > ./agents-workshop/02-single-agent-example/semantic-kernel-agent/.env
 printf "%s" "$ENV_CONTENT" > ./agents-workshop/03-building-custom-tools/03.1.azure-ai-agent-simple-tools/.env
 printf "%s" "$ENV_CONTENT" > ./agents-workshop/03-building-custom-tools/03.2.azure-ai-agent-builtin-tools/.env
+printf "%s" "$ENV_CONTENT" > ./agents-workshop/03-building-custom-tools/03.3.azure-ai-agent-complex-tools/.env

@@ -4,6 +4,8 @@ import os
 import uuid
 import streamlit as st
 import asyncio
+import json
+from authlib.integrations.requests_client import OAuth1Session
 
 from azure.identity.aio import DefaultAzureCredential, AzureDeveloperCliCredential
 from otel_setup import setup_otel, get_span
@@ -11,8 +13,38 @@ from logging_tools.tool_log_base import ToolCall
 from chat_with_agent_base import ChatWithAgentBase
 from utils import FileInput
 from agent_chat_placeholder import AgentChatPlaceholder
+from streamlit_msal import Msal
 
 st.set_page_config(initial_sidebar_state="collapsed", layout="wide")
+
+with st.sidebar:
+    auth_data = Msal.initialize_ui(
+        client_id=st.secrets.auth.microsoft.client_id,
+        authority=st.secrets.auth.microsoft.authority,
+        scopes=["openid", "profile", "email", "offline_access", ".default"], # Optional
+        # Customize (Default values):
+        connecting_label="Connecting",
+        disconnected_label="Disconnected",
+        sign_in_label="Sign in",
+        sign_out_label="Sign out"
+    )
+
+if not auth_data:
+    st.write("Authenticate to access protected content")
+    st.stop()
+
+# if not st.user.is_logged_in:
+#     if st.button("Log in with Microsoft"):
+#        st.login("microsoft")
+#     st.stop()
+
+# if st.button("Log out"):
+#     st.logout()
+access_token = auth_data["accessToken"]
+account = auth_data["account"]
+name = account["name"]
+email = account["username"]
+st.markdown(f"Welcome! {name} 👋 {email}")
 
 # Sidebar for tool call logs
 with st.sidebar:

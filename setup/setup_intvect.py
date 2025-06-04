@@ -43,7 +43,7 @@ from azure.storage.blob import BlobServiceClient
 from rich.logging import RichHandler
 from typing import Literal
 
-from libraries.azd import load_azd_env
+from azd import load_azd_env
 
 
 def setup_index(

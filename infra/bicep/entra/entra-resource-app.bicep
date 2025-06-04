@@ -57,6 +57,7 @@ resource entraResourceApp 'Microsoft.Graph/applications@v1.0' = {
     }
   ]
 
+
   resource fic 'federatedIdentityCredentials@v1.0' = {
     name: '${entraResourceApp.uniqueName}/msiAsFic'
     description: 'Trust the user-assigned MI as a credential for the app'

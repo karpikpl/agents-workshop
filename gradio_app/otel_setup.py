@@ -40,8 +40,6 @@ class TelemetrySampleSettings:
         )
 
 
-
-
 # Create a resource to represent the service/sample
 resource = Resource.create({ResourceAttributes.SERVICE_NAME: "TelemetryExample"})
 

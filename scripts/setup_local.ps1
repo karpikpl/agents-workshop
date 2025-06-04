@@ -35,14 +35,20 @@ cookie_secret = "$cookie_secret"
 
 [auth.microsoft]
 client_id = "$($envDict['ENTRA_APP_ID'])"
-client_secret = "$($envDict['ENTRA_APP_SECRET'])"
+authority = "https://login.microsoftonline.com/$($envDict['AZURE_TENANT_ID'])"
 server_metadata_url = "https://login.microsoftonline.com/$($envDict['AZURE_TENANT_ID'])/v2.0/.well-known/openid-configuration"
 client_kwargs = { "scope" = "openid profile email" }
 "@
 
+# Create directory (including parent directories if they don't exist)
+New-Item -Path "./streamlit_app/.streamlit" -ItemType Directory -Force
+$STREAMLIT_CONTENT | Set-Content -Path "./streamlit_app/.streamlit/secrets.toml"
+
 # Write to .env files
-$envContent | Set-Content ./demo_app/.env
+$envContent | Set-Content ./streamlit_app/.env
+$envContent | Set-Content ./gradio_app/.env
 $envContent | Set-Content ./agents-workshop/02-single-agent-example/azure-ai-agent/.env
 $envContent | Set-Content ./agents-workshop/02-single-agent-example/semantic-kernel-agent/.env
 $envContent | Set-Content ./agents-workshop/03-building-custom-tools/03.1.azure-ai-agent-simple-tools/.env
 $envContent | Set-Content ./agents-workshop/03-building-custom-tools/03.2.azure-ai-agent-builtin-tools/.env
+$envContent | Set-Content ./agents-workshop/03-building-custom-tools/03.3.azure-ai-agent-complex-tools/.env

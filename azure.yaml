@@ -17,7 +17,7 @@ infra:
 
 services:
   simple-chat:
-    project: ./demo_app
+    project: ./gradio_app
     host: containerapp
     language: py
     docker:
@@ -64,11 +64,11 @@ hooks:
     interactive: false
     windows:
       shell: pwsh
-      run: ./scripts/approve_pe.ps1; ./scripts/setup_intvect.ps1; ./scripts/setup_agents.ps1; add_app_reg_secret.ps1;
+      run: ./scripts/approve_pe.ps1; ./scripts/setup_intvect.ps1; ./scripts/add_app_reg_secret.ps1; ./scripts/setup_local.ps1;
       interactive: false
       continueOnError: false
     posix:
       shell: sh
-      run: ./scripts/approve_pe.sh; ./scripts/setup_intvect.sh; ./scripts/setup_agents.sh; add_app_reg_secret.sh;
+      run: ./scripts/approve_pe.sh; ./scripts/setup_intvect.sh; ./scripts/add_app_reg_secret.sh; ./scripts/setup_local.sh;
       interactive: false
       continueOnError: false
