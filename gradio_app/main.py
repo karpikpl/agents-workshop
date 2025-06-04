@@ -1,21 +1,52 @@
+import json
 import signal
-from fastapi import FastAPI, Request, status
+import logging
+from typing import Optional
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import gradio as gr
 from app import demo
 from starlette.responses import RedirectResponse
-from starlette.middleware.sessions import SessionMiddleware
-from authlib.integrations.starlette_client import OAuth, OAuthError
-from starlette.config import Config
+from starlette_session import SessionMiddleware, ISessionBackend
 import os
 
 from dotenv import load_dotenv
+from auth_msal import get_msal_auth, get_current_user, require_auth, get_access_token
 
 # Load environment variables from .env file at the start of your script
 load_dotenv()
 
-app = FastAPI()
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="Azure AI Agent Service", version="1.0.0")
+
+class SessionStore(ISessionBackend):
+    """Custom session store in-memory."""
+    def __init__(self):
+        self.sessions = {}
+
+    async def get(self, key: str) -> Optional[dict]:
+        return self.sessions.get(key) or {}
+
+    async def set(self, key: str, value: dict, exp: Optional[int]) -> Optional[str]:
+        self.sessions[key] = value
+
+    async def delete(self, key: str) -> None:
+        if key in self.sessions:
+            del self.sessions[key]
+
+# IMPORTANT: Add SessionMiddleware FIRST so request.session is always available
+SECRET_KEY = os.environ.get("SECRET_KEY", "a_very_secret_key")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    cookie_name="gradio_session",
+    backend_type="custom",
+    custom_session_backend=SessionStore(),
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,72 +56,130 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Azure Entra ID (AAD) config - fill in your values
-TENANT_ID = os.getenv("AAD_TENANT_ID", "<your-tenant-id>")
-CLIENT_ID = os.getenv("AAD_CLIENT_ID", "<your-client-id>")
-CLIENT_SECRET = os.getenv("AAD_CLIENT_SECRET", "<your-client-secret>")
-REDIRECT_URI = os.getenv("AAD_REDIRECT_URI", "http://localhost:8000/auth/callback")
-
-# Authority and endpoints
-AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-AUTHORIZE_URL = f"{AUTHORITY}/oauth2/v2.0/authorize"
-TOKEN_URL = f"{AUTHORITY}/oauth2/v2.0/token"
-
-# Scopes for OpenID Connect
-SCOPES = ["openid", "profile", "email"]
-
-# Add session middleware for OAuth
-SECRET_KEY = os.environ.get("SECRET_KEY", "a_very_secret_key")
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
-
-# Configure OAuth for Entra ID
-config_data = {
-    "AAD_CLIENT_ID": CLIENT_ID,
-    "AAD_CLIENT_SECRET": CLIENT_SECRET,
-}
-starlette_config = Config(environ=config_data)
-oauth = OAuth(starlette_config)
-oauth.register(
-    name="aad",
-    server_metadata_url=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0/.well-known/openid-configuration",
-    client_kwargs={"scope": "openid email profile"},
-)
-
-# Only keep session-based OAuth logic and Gradio auth_dependency
-
-
-def get_user(request: Request):
-    user = request.session.get("user")
+def get_user_name(request: Request) -> Optional[str]:
+    """Get username for Gradio auth dependency."""
+    # At this point, middleware has already ensured user is authenticated
+    user = get_current_user(request)
     if user:
-        return user["name"]
+        return user.get("name") or user.get("email")
     return None
 
 
-@app.route("/login")
+@app.get("/login")
 async def login(request: Request):
-    redirect_uri = request.url_for("auth")
-    return await oauth.aad.authorize_redirect(request, redirect_uri)
+    """Initiate Azure AD login."""
+    # Generate a state parameter for security
+    import uuid
+    state = str(uuid.uuid4())
+    request.session["oauth_state"] = state
+    
+    # Get authorization URL
+    auth_url = get_msal_auth().get_auth_url(state=state)
+    return RedirectResponse(url=auth_url)
 
 
-@app.route("/auth")
-async def auth(request: Request):
+@app.get("/auth/callback")
+async def auth_callback(request: Request):
+    """Handle Azure AD callback."""
     try:
-        token = await oauth.aad.authorize_access_token(request)
-    except OAuthError:
-        return RedirectResponse(url="/")
-    request.session["user"] = dict(token)["userinfo"]
-    return RedirectResponse(url="/")
+        # Verify state parameter
+        state = request.query_params.get("state")
+        session_state = request.session.get("oauth_state")
+        
+        if not state or state != session_state:
+            logger.warning("Invalid state parameter in auth callback")
+            return RedirectResponse(url="/?error=invalid_state")
+        
+        # Get authorization code
+        code = request.query_params.get("code")
+        if not code:
+            error = request.query_params.get("error")
+            logger.error(f"Authorization failed: {error}")
+            return RedirectResponse(url=f"/?error={error}")
+        
+        # Exchange code for token
+        token_data = get_msal_auth().acquire_token_by_auth_code(code, state)
+        
+        user_obj = get_msal_auth().get_user_from_token(token_data["access_token"])
 
-@app.route("/logout")
+        # Store token and user info in session
+        request.session["user"] = user_obj
+        request.session["token_data"] = token_data
+        logger.info(f"User authenticated: {request.session['user']['email']}")
+
+        # Clear state
+        request.session.pop("oauth_state", None)
+        
+        return RedirectResponse(url="/gradio")
+        
+    except HTTPException as e:
+        logger.error(f"Authentication error: {e.detail}")
+        return RedirectResponse(url=f"/?error=auth_failed")
+    except Exception as e:
+        logger.error(f"Unexpected authentication error: {str(e)}")
+        return RedirectResponse(url="/?error=unexpected_error")
+
+
+@app.get("/logout")
 async def logout(request: Request):
-    request.session.pop("user", None)
-    return RedirectResponse(url="/")
+    """Logout user and clear session."""
+    user = request.session.get("user")
+    if user:
+        logger.info(f"User logged out: {user.get('email', 'unknown')}")
+    
+    request.session.clear()
+    
+    # Redirect to Azure AD logout for complete logout
+    logout_url = f"https://login.microsoftonline.com/{get_msal_auth().tenant_id}/oauth2/v2.0/logout"
+    logout_url += f"?post_logout_redirect_uri={request.url_for('home')}"
+    
+    return RedirectResponse(url=logout_url)
 
-@app.route("/health")
+
+@app.get("/")
+async def home(request: Request):
+    """Home page with automatic login redirect."""
+    user = get_current_user(request)
+    error = request.query_params.get("error")
+    
+    if error:
+        return JSONResponse(
+            content={"error": f"Authentication error: {error}"},
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    if user:
+        # User is authenticated, redirect to Gradio app
+        return RedirectResponse(url="/gradio")
+    else:
+        # User is not authenticated, redirect to login
+        return RedirectResponse(url="/login")
+
+@app.get("/auth/status")
+async def auth_status(request: Request):
+    """Get authentication status (for API clients)."""
+    user = get_current_user(request)
+    if user:
+        return JSONResponse(content={
+            "authenticated": True,
+            "user": user,
+            "message": "User is authenticated"
+        })
+    else:
+        return JSONResponse(
+            content={
+                "authenticated": False,
+                "login_url": "/login",
+                "message": "Authentication required"
+            },
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
+
+@app.get("/health")
 async def health_check(request: Request):
     return JSONResponse(content={"status": "ok"})
 
-@app.route("/ready")
+@app.get("/ready")
 async def ready_check(request: Request):
     if demo:
         return JSONResponse(content={"status": "ready"})
@@ -99,9 +188,13 @@ async def ready_check(request: Request):
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE
     )
 
-# Mount Gradio app with Entra ID auth
-# app = gr.mount_gradio_app(app, demo, path="/", auth_dependency=get_user)
-app = gr.mount_gradio_app(app, demo, path="/")
+# --- Gradio Sub-App for Shared Session ---
+from fastapi import FastAPI as GradioFastAPI
+
+gradio_sub_app = GradioFastAPI()
+# Do NOT add SessionMiddleware here! Only the main app should have it.
+gr.mount_gradio_app(gradio_sub_app, demo, path="/", auth_dependency=get_user_name)
+app.mount("/gradio", gradio_sub_app)
 
 # If running with uvicorn:
 # uvicorn main:app --host 0.0.0.0 --port 8000
@@ -113,3 +206,7 @@ def signal_handler(sig, frame):
 
 
 signal.signal(signal.SIGINT, signal_handler)
+
+def get_json_size_bytes(obj) -> int:
+    """Return the size in bytes of the JSON-serialized object."""
+    return len(json.dumps(obj, separators=(',', ':')).encode('utf-8'))

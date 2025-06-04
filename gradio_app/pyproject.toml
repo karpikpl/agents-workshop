@@ -14,4 +14,9 @@ dependencies = [
     "authlib>=1.6.0",
     "fastapi>=0.115.12",
     "itsdangerous>=2.2.0",
+    "msal>=1.30.0",
+    "azure-identity>=1.19.0",
+    "PyJWT>=2.8.0",
+    "python-multipart>=0.0.6",
+    "starlette-session>=0.4.3",
 ]
