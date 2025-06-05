@@ -99,6 +99,7 @@ To share resources, assign users the `Azure AI User` role to enable access to AI
 
 > [!IMPORTANT]
 > By default, `azd` deployment configures firewalls to allow only the deployer's IP. To share resources, adjust firewall settings as needed or disable firewall with ```azd env set ADD_FIREWALL_RULE_FOR_MY_IP False```
+> To have firewall rules with exception for IP of the machine doing the deployment, let the default setting on. When your network blocks access to [https://api.ipify.org](https://api.ipify.org) - you can set IP value directly in azd using `azd env set MY_IP "$myIP"`
 
 > **💡Tip:** To create Entra App Registration during the deployment, enable it using: 
 > ```bash
@@ -155,7 +156,13 @@ To deploy with minimal permissions:
     ##### Get the managed identity principalId
     IDENTITY_PRINCIPAL_ID=$(az identity show -g "$RG_NAME" -n "$IDENTITY_NAME" --query 'principalId' -o tsv)
 
-    ##### Role definitions
+    ##### Get the principal ID (objectId) of the current signed-in user
+    USER_PRINCIPAL_NAME=$(az ad signed-in-user show --query userPrincipalName -o tsv)
+
+    ##### Get the resource group ID for scope
+    RG_ID=$(az group show -n "$RG_NAME" --query id -o tsv)
+
+    ##### Role definitions (Azure built-in role IDs)
     declare -A ROLES=(
       ["Key Vault Secrets Officer"]="b86a8fe4-44ce-4948-aee5-eccb2c155cd7"
       ["Key Vault Contributor"]="f25e0fa2-a7c8-4377-a976-54943a77a395"
@@ -166,7 +173,7 @@ To deploy with minimal permissions:
       ["Cognitive Services OpenAI User"]="bbed9e0c-87a6-4b4c-8c5c-1a1b6b7c7c74"
       ["Cognitive Services Contributor"]="a97b65f3-24c7-4388-8c0a-4a2a2b1c5c0e"
       ["Search Index Data Contributor"]="5984c3c4-9d3c-4b66-a7b1-3f7f7f7f7f7f"
-      ["Search Index Data Reader"]="b1e7c3c0-8070-4c0f-9a3e-5c1e1d6a7c6e"
+      ["Search Index Data Reader"]="7ca78c08-252a-4471-8644-bb5ff32d4ba0"
       ["Search Service Contributor"]="de139f84-1756-47ae-9be6-808fbbe84772"
       ["Azure Maps Data Reader"]="e4e6a7c1-8c8b-4c8b-8c8b-8c8b8c8b8c8b"
     )
@@ -177,10 +184,20 @@ To deploy with minimal permissions:
       echo "Assigning '$ROLE_NAME' ($ROLE_ID) to $IDENTITY_NAME on resource group $RG_NAME..."
       az role assignment create \
         --assignee-object-id "$IDENTITY_PRINCIPAL_ID" \
+        --assignee-principal-type "ServicePrincipal"
         --role "$ROLE_ID" \
-        --resource-group "$RG_NAME"
+        --scope "$RG_ID"
     done
 
+    for ROLE_NAME in "${!ROLES[@]}"; do
+      ROLE_ID="${ROLES[$ROLE_NAME]}"
+      echo "Assigning '$ROLE_NAME' ($ROLE_ID) to $USER_PRINCIPAL_NAME on resource group $RG_NAME..."
+      az role assignment create \
+        --assignee "$USER_PRINCIPAL_NAME" \
+        --assignee-principal-type "User"
+        --role "$ROLE_ID" \
+        --scope "$RG_ID"
+    done
     echo "All roles assigned."
     ```
 </details>
@@ -205,6 +222,8 @@ Each workshop task uses `uv` for Python version and package management.
    uv run agent.py
    ```   
 3. Follow the instructions in the `README.md` within each subfolder.
+
+> **💡 Tip** You can run tools using uv too. Run `uv tool run ruff check --fix` or `uv tool run black .` to reformat your code.
 
 ### Setting up `uv` and VS Code
 

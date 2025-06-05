@@ -28,6 +28,25 @@ APPLICATIONINSIGHTS_CONNECTION_STRING=$($envDict['APPLICATIONINSIGHTS_CONNECTION
 AZURE_MAPS_CLIENT_ID=$($envDict['AZURE_MAPS_CLIENT_ID'])
 "@
 
+$gradioContent = @"
+$($envContent)
+
+# Gradio specific settings
+SECRET_KEY=$cookie_secret
+
+# Entra ID settings
+AAD_CLIENT_ID=$($envDict['ENTRA_APP_ID'])
+AAD_CLIENT_SECRET=$($envDict['ENTRA_APP_SECRET'])
+AAD_TENANT_ID=$($envDict['AZURE_TENANT_ID'])
+AAD_REDIRECT_URI=http://localhost:8001/auth/callback
+
+# StackOverflow settings
+STACKOVERFLOW_CLIENT_ID=
+STACKOVERFLOW_CLIENT_SECRET=
+STACKOVERFLOW_KEY=
+STACKOVERFLOW_REDIRECT_URI=http://localhost:8001/auth/stackoverflow/callback
+"
+
 $STREAMLIT_CONTENT=@"
 [auth]
 redirect_uri = "http://localhost:8501/oauth2callback"
@@ -44,9 +63,11 @@ client_kwargs = { "scope" = "openid profile email" }
 New-Item -Path "./streamlit_app/.streamlit" -ItemType Directory -Force
 $STREAMLIT_CONTENT | Set-Content -Path "./streamlit_app/.streamlit/secrets.toml"
 
+# gradio app
+$gradioContent | Set-Content ./gradio_app/.env
+
 # Write to .env files
 $envContent | Set-Content ./streamlit_app/.env
-$envContent | Set-Content ./gradio_app/.env
 $envContent | Set-Content ./agents-workshop/02-single-agent-example/azure-ai-agent/.env
 $envContent | Set-Content ./agents-workshop/02-single-agent-example/semantic-kernel-agent/.env
 $envContent | Set-Content ./agents-workshop/03-building-custom-tools/03.1.azure-ai-agent-simple-tools/.env

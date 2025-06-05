@@ -9,12 +9,15 @@ import io
 from PIL import Image
 import numpy as np
 
+from semantic_kernel import Kernel
 from semantic_kernel.agents import (
     AzureAIAgent,
     AzureAIAgentThread,
 )
 from azure.ai.projects.aio import AIProjectClient
 from agent_factory import create_agent, create_project_client
+from otel_setup import get_span
+from semantic_kernel.filters import AutoFunctionInvocationContext, FilterTypes
 
 from semantic_kernel.contents import (
     ChatMessageContent,
@@ -33,16 +36,61 @@ from azure.ai.agents.models import (
     FilePurpose,
 )
 
+from kernel_factory import KernelFactory
+from semantic_kernel.functions import FunctionResult
+
 app_logger = logging.getLogger("workshop.agent")
 
 
 class EnterpriseChat:
     def __init__(
-        self, client: AIProjectClient, agent: AzureAIAgent, thread: AzureAIAgentThread
+        self,
+        client: AIProjectClient,
+        agent: AzureAIAgent,
+        thread: AzureAIAgentThread,
+        kernel: Kernel,
     ):
         self.thread = thread
         self.agent = agent
         self.client = client
+        self.kernel = kernel
+        self.stack_token = ""
+        self.kernel.add_filter(
+            FilterTypes.AUTO_FUNCTION_INVOCATION, self.auth_function_filter
+        )
+
+    async def auth_function_filter(self, context: AutoFunctionInvocationContext, next):
+        """A filter that will be called for auto-invoked functions."""
+        with get_span("auth_function_filter"):
+            function_name = context.function.name
+            plugin_name = context.function.plugin_name
+            if plugin_name == "StackOverflowTool":
+                if self.stack_token:
+                    context.arguments["kwargs"]["token"] = self.stack_token
+                else:
+                    context.function_result = FunctionResult(
+                        function=context.function_result.function,
+                        value="""Please authenticate with Stack Overflow to use this tool.
+                        Visit: http://localhost:8001/auth/stackoverflow""",
+                    )
+                    context.terminate = True
+                    return
+
+            # Execute the function
+            try:
+                await next(context)
+            except Exception as e:
+                app_logger.error(
+                    f"Error in function {plugin_name}.{function_name}: {str(e)}"
+                )
+                raise
+
+    def set_stack_token(self, stack_token: str) -> None:
+        """
+        Set the Stack Overflow authentication tokens.
+        This is used to authenticate the Stack Overflow tool.
+        """
+        self.stack_token = stack_token
 
     async def reset_thread(self) -> None:
         """
@@ -432,9 +480,10 @@ async def create_enterprise_chat(
     """
     Factory function to create an EnterpriseChat instance.
     """
+    kernel = KernelFactory.create_kernel()
     client, creds = create_project_client()
-    agent = await create_agent(agent_name, agent_instructions, client)
+    agent = await create_agent(agent_name, agent_instructions, client, kernel)
     agent_thread = await client.agents.threads.create()
     thread = AzureAIAgentThread(client=client, thread_id=agent_thread.id)
 
-    return EnterpriseChat(client, agent, thread)
+    return EnterpriseChat(client, agent, thread, kernel)

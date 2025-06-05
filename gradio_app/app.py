@@ -1,18 +1,35 @@
 from typing import List
 import gradio as gr
-from agent_chat import create_enterprise_chat
-
-# Use asyncio to run the async function in a sync context
-enterprise_chat = None
+from agent_chat import EnterpriseChat, create_enterprise_chat
 
 
-async def get_enterprise_chat() -> None:
-    global enterprise_chat
-    if enterprise_chat is None:
-        enterprise_chat = await create_enterprise_chat(
-            "Bob",
-            """
-            You are a helpful assistant for enterprise queries. Use bing search and file search tools to answer questions.
+# Global dictionary to store user-specific instances
+instances: dict[str, EnterpriseChat] = {}
+
+
+def get_user(request: gr.Request) -> str:
+    if request.username:
+        return f"Hello, **{request.username}**!"
+    return "Hello, **Guest**!"
+
+
+async def set_enterprise_chat(request: gr.Request) -> None:
+
+    stackoverflow_token: str = None
+    if request and request.request and request.request.session:
+        stackoverflow_token = request.request.session.get("stackoverflow_token", None)
+
+    if request.session_hash in instances:
+        # If an instance already exists for this session, return it
+        chat = instances[request.session_hash]
+        chat.set_stack_token(stackoverflow_token)
+        return None
+
+    chat = await create_enterprise_chat(
+        "Bob",
+        f"""
+            You are a helpful assistant for enterprise queries.
+            The user you're assisting is {request.username}.
             
             ## Tool usage
 
@@ -27,8 +44,10 @@ async def get_enterprise_chat() -> None:
             They may give useful information as to why types of values are allowed or required. 
             For example, the \'query\' argument takes a latitude, longitude value, so you must convert a string location to this type.
             """,
-        )
-        return None
+    )
+    chat.set_stack_token(stackoverflow_token)
+    instances[request.session_hash] = chat
+    return None
 
 
 # Example: custom theme for a more modern look
@@ -60,9 +79,10 @@ brand_theme = gr.themes.Default(
 )
 
 
-async def clear_thread():
+async def clear_thread(request: gr.Request):
     # Placeholder for thread reset logic if using AzureAIAgent threads
-    await enterprise_chat.reset_thread()
+    chat = instances.get(request.session_hash)
+    await chat.reset_thread()
     return []
 
 
@@ -70,7 +90,7 @@ def on_example_clicked(evt: gr.SelectData):
     return evt.value["text"]
 
 
-async def chat_with_agent(user_message: dict, history: List[dict]):
+async def chat_with_agent(request: gr.Request, user_message: dict, history: List[dict]):
     for x in user_message["files"]:
         history.append({"role": "user", "content": {"path": x}})
     if user_message["text"] is not None:
@@ -83,7 +103,9 @@ async def chat_with_agent(user_message: dict, history: List[dict]):
     }
     yield history + [assistant_msg], gr.MultimodalTextbox(interactive=False, value=None)
 
-    agent_response = enterprise_chat.azure_enterprise_chat(user_message, history)
+    chat = instances.get(request.session_hash)
+
+    agent_response = chat.azure_enterprise_chat(user_message, history)
 
     async for new_history in agent_response:
         assistant_msg["metadata"]["status"] = "done"
@@ -91,14 +113,26 @@ async def chat_with_agent(user_message: dict, history: List[dict]):
 
 
 with gr.Blocks(
-    theme=brand_theme, css="footer {visibility: hidden;}", fill_height=True
+    theme=brand_theme,
+    css="""
+    footer {visibility: hidden;}
+    .header-row {display: flex; justify-content: space-between; align-items: center;}
+    .header-title {text-align: left; font-size: 2rem; font-weight: bold; flex: 1;}
+    .user-display {text-align: right; font-size: 1.1rem; font-weight: normal; min-width: 200px;}
+    """,
+    fill_height=True,
 ) as demo:
-    gr.HTML('<h1 style="text-align: center;">Azure AI Agent Service</h1>')
+    with gr.Row(elem_classes="header-row"):
+        gr.HTML('<div class="header-title">Azure AI Agent Service</div>')
+        user_display = gr.Markdown(
+            value="", elem_id="user-display", elem_classes="user-display"
+        )
+    demo.load(get_user, None, user_display)
     chatbot = gr.Chatbot(
         label="Agent",
         type="messages",
         examples=[
-            {"text": "What's my company's remote work policy?"},
+            {"text": "Get user information from Stack Overflow."},
             {
                 "text": "What's the forecast for next 5 days for Redmond,WA? Build a table, use emojis."
             },
@@ -151,7 +185,7 @@ with gr.Blocks(
         ],
     )
 
-    chat_input.attach_load_event(get_enterprise_chat, every=None)
+    chat_input.attach_load_event(set_enterprise_chat, every=None)
 
     # On submit: call azure_enterprise_chat, then clear the textbox
     (

@@ -10,6 +10,7 @@ import logging
 import os
 from azure.identity.aio import DefaultAzureCredential
 from azure.ai.projects.aio import AIProjectClient
+from semantic_kernel import Kernel
 from semantic_kernel.agents import (
     AzureAIAgent,
     AzureAIAgentThread,
@@ -34,9 +35,9 @@ from azure.ai.agents.models import (
 from dotenv import load_dotenv
 
 from otel_setup import setup_otel
-from kernel_factory import KernelFactory
 
 from simple_tool import SimpleTool
+from stack_overflow_tool import StackOverflowTool
 
 # Load environment variables from .env file at the start of your script
 load_dotenv()
@@ -126,7 +127,7 @@ async def setup_tools(
 
 
 async def create_agent(
-    agent_name: str, agent_instructions: str, client: AIProjectClient
+    agent_name: str, agent_instructions: str, client: AIProjectClient, kernel: Kernel
 ) -> AzureAIAgent:
     endpoint = os.environ.get("AZURE_AI_FOUNDRY_CONNECTION_STRING")
     deployment_name = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
@@ -181,14 +182,12 @@ async def create_agent(
         function_choice_behavior=FunctionChoiceBehavior.Auto()
     )
 
-    kernel = await KernelFactory.create_kernel(agent_definition)
-
     agent = AzureAIAgent(
         arguments=KernelArguments(kernel_settings),
         kernel=kernel,
         client=client,
         definition=agent_definition,
-        plugins=[SimpleTool()],
+        plugins=[SimpleTool(), StackOverflowTool()],
     )
     return agent
 
