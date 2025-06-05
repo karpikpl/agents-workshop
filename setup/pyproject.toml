@@ -1,0 +1,18 @@
+[project]
+name = "setup"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "azure-ai-inference[opentelemetry]==1.0.0b9",
+    "azure-ai-projects==1.0.0b10",
+    "azure-identity==1.17.1",
+    "azure-search-documents==11.6.0b9",
+    "azure-storage-blob==12.24.1",
+    "pandas>=2.2.3",
+    "pydantic==2.7.1",
+    "python-dotenv==1.0.0",
+    "rich==13.9.4",
+    "semantic-kernel[azure]==1.29.0",
+]

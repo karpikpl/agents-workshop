@@ -137,6 +137,16 @@ To deploy with minimal permissions:
    - `Index Data Reader` on AI Search
    - `Search Service Contributor` on AI Search
    - `Azure Maps Data Reader` on Maps
+6. Assign roles to the user identity:
+   - `Blob Data Contributor` on Storage Account
+   - `Cognitive Services OpenAI Contributor` on Cognitive Services account
+   - `Cognitive Services User` on Cognitive Services account
+   - `Cognitive Services OpenAI User` on Cognitive Services account
+   - `Cognitive Services Contributor` on Cognitive Services account
+   - `Index Data Contributor` on AI Search
+   - `Index Data Reader` on AI Search
+   - `Search Service Contributor` on AI Search
+   - `Azure Maps Data Reader` on Maps
 
    > Roles can be assigned on the Resource Group level.
 
