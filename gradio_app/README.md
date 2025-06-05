@@ -19,12 +19,11 @@ The application implements automatic authentication with the following behavior:
 
 1. **Unauthenticated Access**: 
    - Visiting `/` automatically redirects to `/login`
-   - Accessing `/gradio` automatically redirects to `/login`
    - Protected routes require authentication
 
 2. **Authentication Process**:
    - `/login` redirects to Azure Entra ID
-   - After successful authentication, users are redirected to `/gradio`
+   - After successful authentication, users are redirected to `/`
    - Session is maintained across requests
 
 3. **API Endpoints**:
@@ -76,25 +75,7 @@ In your App Registration:
    cp .env.example .env
    ```
 
-2. Update `.env` with your values:
-   ```env
-   # Azure Entra ID Configuration
-   AAD_CLIENT_ID=your-application-client-id
-   AAD_CLIENT_SECRET=your-client-secret-value  
-   AAD_TENANT_ID=your-tenant-id
-   AAD_REDIRECT_URI=http://localhost:8000/auth/callback
-
-   # Session Security
-   SECRET_KEY=your-random-secret-key-for-sessions
-
-   # Azure AI Foundry
-   AZURE_AI_FOUNDRY_CONNECTION_STRING=your-ai-foundry-connection-string
-   AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=your-chat-deployment-name
-   AZURE_OPENAI_API_VERSION=2024-10-21
-
-   # Optional: Application Insights
-   APPLICATIONINSIGHTS_CONNECTION_STRING=your-app-insights-connection
-   ```
+2. Update `.env` using the example
 
 ### 4. Install Dependencies
 
@@ -118,46 +99,6 @@ Or manually:
 uvicorn main:app --host 0.0.0.0 --port 8501 --reload
 ```
 
-## Testing the Authentication Flow
-
-### Automated Testing
-
-Run the authentication flow test to verify redirects work correctly:
-
-```bash
-# Start the application first
-uvicorn main:app --host 0.0.0.0 --port 8501 &
-
-# Run the test script
-python test_auth_flow.py
-```
-
-### Manual Testing
-
-1. **Start the application**:
-   ```bash
-   ./start.sh
-   ```
-
-2. **Test authentication flow**:
-   - Visit `http://localhost:8501/` - should redirect to login
-   - Visit `http://localhost:8501/gradio` - should redirect to login
-   - Visit `http://localhost:8501/auth/status` - should return 401 Unauthorized
-   - Visit `http://localhost:8501/health` - should return OK (no auth required)
-
-3. **Complete authentication**:
-   - Visit `http://localhost:8501/login` - redirects to Azure Entra ID
-   - Complete Azure authentication
-   - Should be redirected back to `/gradio` with full access
-
-### Expected Behavior
-
-- ✅ **Unauthenticated users**: Automatically redirected to login
-- ✅ **Protected routes**: `/gradio` and related paths require authentication
-- ✅ **Public routes**: `/health`, `/ready` work without authentication
-- ✅ **Post-authentication**: Users are redirected to the Gradio application
-- ✅ **Session management**: Authentication persists across requests
-- ✅ **Logout**: Clears both local and Azure sessions
 
 ## Authentication Flow
 
@@ -165,17 +106,16 @@ python test_auth_flow.py
 2. **If not authenticated**, they see login information
 3. **Click login** redirects to Azure Entra ID
 4. **After authentication**, user is redirected back to the app
-5. **Access the chat interface** at `http://localhost:8000/gradio`
+5. **Access the chat interface** at `http://localhost:8000`
 
 ## API Endpoints
 
-- `GET /` - Home page with authentication status
 - `GET /login` - Initiate Azure AD login
 - `GET /auth/callback` - Handle Azure AD callback
 - `GET /logout` - Logout and clear session
 - `GET /health` - Health check endpoint
 - `GET /ready` - Readiness check
-- `/gradio` - Main chat interface (requires authentication)
+- `/` - Main chat interface (requires authentication)
 
 ## Token Management
 
