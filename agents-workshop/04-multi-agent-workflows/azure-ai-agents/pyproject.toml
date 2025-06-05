@@ -1,0 +1,11 @@
+[project]
+name = "semantic-kernel-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "azure-monitor-opentelemetry-exporter>=1.0.0b36",
+    "azure-search-documents>=11.6.0b4",
+    "semantic-kernel[azure]>=1.31.0",
+]

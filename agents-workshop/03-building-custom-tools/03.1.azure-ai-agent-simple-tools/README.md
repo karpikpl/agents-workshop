@@ -10,6 +10,7 @@ Tools (also called Plugins) are what make your agent actually *do* things!
 
 ---
 
+
 ## 🧩 How to Add Plugins/Functions/Tools
 
 1. **Define your plugin as a Python class.**

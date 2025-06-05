@@ -1,6 +1,6 @@
-# 🧑‍💻 03 - Building Custom Tools: Code Interpreter
+# 🧑‍💻 02 - Building Custom Tools: Code Interpreter
 
-![Code Interpreter](https://learn.microsoft.com/en-us/semantic-kernel/frameworks/agent/examples/example-assistant-code?pivots=programming-language-python)
+[Code Interpreter](https://learn.microsoft.com/en-us/semantic-kernel/frameworks/agent/examples/example-assistant-code?pivots=programming-language-python)
 
 ---
 
