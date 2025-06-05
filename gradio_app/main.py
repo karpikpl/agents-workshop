@@ -281,6 +281,9 @@ async def stackoverflow_auth_callback(
         return RedirectResponse(url="/?error=so_oauth_exception")
 
 
+gr.mount_gradio_app(app, demo, path="/", auth_dependency=None)
+
+# Update to enable authentication for Gradio app
 gr.mount_gradio_app(app, demo, path="/", auth_dependency=get_user_name)
 # If running with uvicorn:
 # uvicorn main:app --host 0.0.0.0 --port 8000
