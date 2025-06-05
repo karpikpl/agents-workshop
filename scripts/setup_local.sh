@@ -27,6 +27,26 @@ APPLICATIONINSIGHTS_CONNECTION_STRING=${envDict['APPLICATIONINSIGHTS_CONNECTION_
 AZURE_MAPS_CLIENT_ID=${envDict['AZURE_MAPS_CLIENT_ID']}
 "
 
+GRADIO_CONTENT=$(cat <<EOF
+${ENV_CONTENT}
+
+# Gradio specific settings
+SECRET_KEY=$(openssl rand -base64 32)
+
+# Entra ID settings
+AAD_CLIENT_ID=${envDict['ENTRA_APP_ID']}
+AAD_CLIENT_SECRET=${envDict['ENTRA_APP_SECRET']}
+AAD_TENANT_ID=${envDict['AZURE_TENANT_ID']}
+AAD_REDIRECT_URI=http://localhost:8001/auth/callback
+
+# StackOverflow settings
+STACKOVERFLOW_CLIENT_ID=
+STACKOVERFLOW_CLIENT_SECRET=
+STACKOVERFLOW_KEY=
+STACKOVERFLOW_REDIRECT_URI=http://localhost:8001/auth/stackoverflow/callback
+EOF
+)
+
 STREAMLIT_CONTENT=$(cat <<EOF
 [auth]
 redirect_uri = "http://localhost:8501/oauth2callback"
@@ -43,8 +63,9 @@ EOF
 mkdir -p ./streamlit_app/.streamlit
 printf "%s" "$STREAMLIT_CONTENT" > ./streamlit_app/.streamlit/secrets.toml
 
+printf "%s" "$GRADIO_CONTENT" > ./gradio_app/.env
+
 printf "%s" "$ENV_CONTENT" > ./streamlit_app/.env
-printf "%s" "$ENV_CONTENT" > ./gradio_app/.env
 printf "%s" "$ENV_CONTENT" > ./agents-workshop/02-single-agent-example/azure-ai-agent/.env
 printf "%s" "$ENV_CONTENT" > ./agents-workshop/02-single-agent-example/semantic-kernel-agent/.env
 printf "%s" "$ENV_CONTENT" > ./agents-workshop/03-building-custom-tools/03.1.azure-ai-agent-simple-tools/.env

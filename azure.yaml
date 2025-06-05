@@ -48,8 +48,7 @@ hooks:
         set +e
         myIP=$(curl -s https://api.ipify.org)
         if [ -z "$myIP" ]; then
-          echo "Warning: Could not retrieve public IP from ipify. Setting MY_IP to empty."
-          myIP=""
+          echo "Warning: Could not retrieve public IP from ipify."
         fi
         echo "MY_IP=$myIP"
         azd env set MY_IP "$myIP"

@@ -691,26 +691,36 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "authlib" },
+    { name = "azure-identity" },
     { name = "azure-monitor-opentelemetry-exporter" },
     { name = "azure-search-documents" },
     { name = "fastapi" },
     { name = "gradio" },
     { name = "itsdangerous" },
+    { name = "msal" },
+    { name = "pyjwt" },
+    { name = "python-multipart" },
     { name = "semantic-kernel", extra = ["azure"] },
     { name = "starlette" },
+    { name = "starlette-session" },
     { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "authlib", specifier = ">=1.6.0" },
+    { name = "azure-identity", specifier = ">=1.19.0" },
     { name = "azure-monitor-opentelemetry-exporter", specifier = ">=1.0.0b36" },
     { name = "azure-search-documents", specifier = ">=11.6.0b4" },
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "gradio", specifier = "==5.14.0" },
     { name = "itsdangerous", specifier = ">=2.2.0" },
+    { name = "msal", specifier = ">=1.30.0" },
+    { name = "pyjwt", specifier = ">=2.8.0" },
+    { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "semantic-kernel", extras = ["azure"], specifier = ">=1.31.0" },
     { name = "starlette", specifier = ">=0.46.2" },
+    { name = "starlette-session", specifier = ">=0.4.3" },
     { name = "uvicorn", specifier = ">=0.34.2" },
 ]
 
@@ -1903,6 +1913,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ce/20/08dfcd9c983f6a6f4a1000d934b9e6d626cff8d2eeb77a89a68eef20a2b7/starlette-0.46.2.tar.gz", hash = "sha256:7f7361f34eed179294600af672f565727419830b54b7b084efe44bb82d2fccd5", size = 2580846 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/0c/9d30a4ebeb6db2b25a841afbb80f6ef9a854fc3b41be131d249a977b4959/starlette-0.46.2-py3-none-any.whl", hash = "sha256:595633ce89f8ffa71a015caed34a5b2dc1c0cdb3f0f1fbd1e69339cf2abeec35", size = 72037 },
+]
+
+[[package]]
+name = "starlette-session"
+version = "0.4.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "itsdangerous" },
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0a/76/e973d473cfabcce37d8bc3832de51f0b22dd29d49d41ce58ec6e7daadc9b/starlette_session-0.4.3.tar.gz", hash = "sha256:5b50a1c91a2ca1cf594574c0b386eea5dbed140dcb397ee73f0c43956bd2bfcc", size = 6105 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/45/fd/eaff58a14a6b7a2dccd4ec6c82883bde5fcd9b256065c9e24423b8f33a12/starlette_session-0.4.3-py3-none-any.whl", hash = "sha256:bfc2559ec0fec566b44865f20d1c4262b1132de867a936abe8771cf139cbbe0b", size = 6473 },
 ]
 
 [[package]]

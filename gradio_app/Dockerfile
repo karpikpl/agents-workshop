@@ -16,8 +16,13 @@ RUN pip install -r requirements.txt
 # Remove apk cache
 RUN rm -rf /var/cache/apk/*
 
-# Expose the default port
+# Expose the default port for the application
 EXPOSE 8501
 
-# Set the command to run your fastapi app using uvicorn
-CMD ["python", "-m", "uvicorn", "main:app", "--port=8501", "--host=0.0.0.0"]
+# Set environment variables for production
+ENV PYTHONPATH=/app
+ENV UVICORN_HOST=0.0.0.0
+ENV UVICORN_PORT=8501
+
+# Set the command to run your FastAPI app using uvicorn
+CMD ["python", "-m", "uvicorn", "main:app", "--host=0.0.0.0", "--port=8501"]
